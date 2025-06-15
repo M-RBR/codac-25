@@ -1,0 +1,163 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  documents     Document[]
+  favorites     Favorite[]
+  comments      Comment[]
+  suggestions   Suggestion[]
+  collaborators DocumentCollaborator[]
+
+  @@map("users")
+}
+
+model Document {
+  id          String   @id @default(cuid())
+  title       String
+  content     Json // Plate.js document content as JSON
+  parentId    String? // For hierarchical document structure
+  isPublished Boolean  @default(false)
+  isArchived  Boolean  @default(false)
+  coverImage  String? // URL to cover image
+  icon        String? // Emoji or icon for the document
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  authorId      String
+  author        User                   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  parent        Document?              @relation("DocumentHierarchy", fields: [parentId], references: [id])
+  children      Document[]             @relation("DocumentHierarchy")
+  favorites     Favorite[]
+  comments      Comment[]
+  suggestions   Suggestion[]
+  collaborators DocumentCollaborator[]
+  versions      DocumentVersion[]
+
+  @@map("documents")
+}
+
+model Favorite {
+  id String @id @default(cuid())
+
+  // Relations
+  userId     String
+  documentId String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, documentId])
+  @@map("favorites")
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  content   String
+  resolved  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Position in document (for inline comments)
+  blockId String? // Reference to specific block in document
+  path    Json? // Path to the comment position in the document
+
+  // Relations
+  userId     String
+  documentId String
+  parentId   String? // For threaded comments
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  document   Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  parent     Comment?  @relation("CommentThread", fields: [parentId], references: [id])
+  replies    Comment[] @relation("CommentThread")
+
+  @@map("comments")
+}
+
+model Suggestion {
+  id          String           @id @default(cuid())
+  type        SuggestionType
+  content     Json // Original and suggested content
+  status      SuggestionStatus @default(PENDING)
+  description String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  // Position in document
+  blockId String? // Reference to specific block
+  path    Json? // Path to the suggestion position
+
+  // Relations
+  userId     String
+  documentId String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@map("suggestions")
+}
+
+model DocumentCollaborator {
+  id         String             @id @default(cuid())
+  permission DocumentPermission @default(READ)
+  createdAt  DateTime           @default(now())
+
+  // Relations
+  userId     String
+  documentId String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, documentId])
+  @@map("document_collaborators")
+}
+
+model DocumentVersion {
+  id        String   @id @default(cuid())
+  content   Json // Document content at this version
+  title     String
+  version   Int
+  createdAt DateTime @default(now())
+
+  // Relations
+  documentId String
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, version])
+  @@map("document_versions")
+}
+
+// Enums
+enum SuggestionType {
+  INSERT
+  DELETE
+  REPLACE
+  BLOCK_INSERT
+  BLOCK_DELETE
+  BLOCK_REPLACE
+}
+
+enum SuggestionStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+enum DocumentPermission {
+  READ
+  WRITE
+  ADMIN
+}
