@@ -1,10 +1,10 @@
-import type { TextStreamPart, ToolSet } from 'ai';
-import type { NextRequest } from 'next/server';
 
 import { createOpenAI } from '@ai-sdk/openai';
 import { InvalidArgumentError } from '@ai-sdk/provider';
 import { delay as originalDelay } from '@ai-sdk/provider-utils';
+import type { TextStreamPart, ToolSet } from 'ai';
 import { convertToCoreMessages, streamText } from 'ai';
+import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
 /**
@@ -91,7 +91,7 @@ function smoothStream<TOOLS extends ToolSet>({
     return new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
       async transform(chunk, controller) {
         if (chunk.type !== 'text-delta') {
-          console.info(buffer, 'finished');
+          // Buffer finished processing
 
           if (buffer.length > 0) {
             controller.enqueue({ textDelta: buffer, type: 'text-delta' });

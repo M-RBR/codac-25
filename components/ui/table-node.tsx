@@ -1,8 +1,6 @@
 'use client';
 
-import * as React from 'react';
 
-import type * as DropdownMenuPrimitive from '@radix-ui/react-dropdown-menu';
 
 import { useDraggable, useDropLine } from '@platejs/dnd';
 import {
@@ -19,6 +17,7 @@ import {
   useTableElement,
   useTableMergeState,
 } from '@platejs/table/react';
+import type * as DropdownMenuPrimitive from '@radix-ui/react-dropdown-menu';
 import { PopoverAnchor } from '@radix-ui/react-popover';
 import { cva } from 'class-variance-authority';
 import {
@@ -58,6 +57,7 @@ import {
   withHOC,
 } from 'platejs/react';
 import { useElementSelector } from 'platejs/react';
+import * as React from 'react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -460,7 +460,7 @@ export function TableRowElement(props: PlateElementProps<TTableRowElement>) {
   );
 }
 
-function RowDragHandle({ dragRef }: { dragRef: React.Ref<any> }) {
+function RowDragHandle({ dragRef }: { dragRef: React.Ref<HTMLButtonElement> }) {
   const editor = useEditorRef();
   const element = useElement();
 
@@ -588,7 +588,7 @@ export function TableCellElement({
                 className={cn(
                   'absolute top-0 z-30 hidden h-full w-1 bg-ring',
                   'right-[-1.5px]',
-                  columnResizeVariants({ colIndex: colIndex as any })
+                  columnResizeVariants({ colIndex: colIndex as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | null | undefined })
                 )}
               />
               {colIndex === 0 && (

@@ -1,9 +1,10 @@
 'use client';
 
-import { ReactNode } from 'react';
-import { SidebarProvider } from '@/components/ui/sidebar';
-import { PlateEditor } from './editor/plate-editor';
 import { ThemeProvider } from 'next-themes';
+import { NuqsAdapter } from 'nuqs/adapters/next/app';
+import { ReactNode } from 'react';
+
+import { SidebarProvider } from './ui/sidebar';
 
 interface ProvidersProps {
   children: ReactNode;
@@ -17,10 +18,11 @@ export function Providers({ children }: ProvidersProps) {
       enableSystem
       disableTransitionOnChange
     >
-
-
-      {children}
-
+      <NuqsAdapter>
+        <SidebarProvider defaultOpen={true}>
+          {children}
+        </SidebarProvider>
+      </NuqsAdapter>
     </ThemeProvider>
   );
 }

@@ -1,10 +1,10 @@
 'use client';
 
-import * as React from 'react';
 
 import { useCalloutEmojiPicker } from '@platejs/callout/react';
 import { useEmojiDropdownMenuState } from '@platejs/emoji/react';
 import { PlateElement } from 'platejs/react';
+import * as React from 'react';
 
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -31,7 +31,7 @@ export function CalloutElement({
     <PlateElement
       className={cn('my-1 flex rounded-sm bg-muted p-4 pl-3', className)}
       style={{
-        backgroundColor: props.element.backgroundColor as any,
+        backgroundColor: props.element.backgroundColor as string,
       }}
       attributes={{
         ...attributes,
@@ -52,7 +52,7 @@ export function CalloutElement({
               }}
               contentEditable={false}
             >
-              {(props.element.icon as any) || '💡'}
+              {(props.element.icon as string) || '💡'}
             </Button>
           }
         >

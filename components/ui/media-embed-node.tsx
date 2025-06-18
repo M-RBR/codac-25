@@ -1,16 +1,16 @@
 'use client';
 
-import * as React from 'react';
-import LiteYouTubeEmbed from 'react-lite-youtube-embed';
-import { Tweet } from 'react-tweet';
 
-import type { TMediaEmbedElement } from 'platejs';
-import type { PlateElementProps } from 'platejs/react';
 
 import { parseTwitterUrl, parseVideoUrl } from '@platejs/media';
 import { MediaEmbedPlugin, useMediaState } from '@platejs/media/react';
 import { ResizableProvider, useResizableValue } from '@platejs/resizable';
+import type { TMediaEmbedElement } from 'platejs';
+import type { PlateElementProps } from 'platejs/react';
 import { PlateElement, withHOC } from 'platejs/react';
+import * as React from 'react';
+import LiteYouTubeEmbed from 'react-lite-youtube-embed';
+import { Tweet } from 'react-tweet';
 
 import { cn } from '@/lib/utils';
 
@@ -41,8 +41,8 @@ export const MediaEmbedElement = withHOC(
     const provider = embed?.provider;
 
     return (
-      <MediaToolbar plugin={MediaEmbedPlugin}>
-        <PlateElement className="py-2.5" {...props}>
+      <PlateElement className="py-2.5" {...props}>
+        <MediaToolbar plugin={MediaEmbedPlugin}>
           <figure
             className="group relative m-0 w-full cursor-default"
             contentEditable={false}
@@ -111,8 +111,8 @@ export const MediaEmbedElement = withHOC(
                   className={cn(
                     '[&_.react-tweet-theme]:my-0',
                     !readOnly &&
-                      selected &&
-                      '[&_.react-tweet-theme]:ring-2 [&_.react-tweet-theme]:ring-ring [&_.react-tweet-theme]:ring-offset-2'
+                    selected &&
+                    '[&_.react-tweet-theme]:ring-2 [&_.react-tweet-theme]:ring-ring [&_.react-tweet-theme]:ring-offset-2'
                   )}
                 >
                   <Tweet id={embed!.id!} />
@@ -129,10 +129,10 @@ export const MediaEmbedElement = withHOC(
               <CaptionTextarea placeholder="Write a caption..." />
             </Caption>
           </figure>
+        </MediaToolbar>
 
-          {props.children}
-        </PlateElement>
-      </MediaToolbar>
+        {props.children}
+      </PlateElement>
     );
   }
 );

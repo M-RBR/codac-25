@@ -1,53 +1,35 @@
-import { AppSidebar } from "@/components/app-sidebar"
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb"
-import { Separator } from "@/components/ui/separator"
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar"
+import { DashboardHeader } from "@/components/dashboard/dashboard-header"
+import { LearningProgress } from "@/components/dashboard/learning-progress"
+import { RecentActivity } from "@/components/dashboard/recent-activity"
+import { StatsCards } from "@/components/dashboard/stats-cards"
+import { UpcomingEvents } from "@/components/dashboard/upcoming-events"
 
 export default function Page() {
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
-          <SidebarTrigger className="-ml-1" />
-          <Separator
-            orientation="vertical"
-            className="mr-2 data-[orientation=vertical]:h-4"
-          />
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem className="hidden md:block">
-                <BreadcrumbLink href="#">
-                  Building Your Application
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator className="hidden md:block" />
-              <BreadcrumbItem>
-                <BreadcrumbPage>Data Fetching</BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
-        </header>
-        <div className="flex flex-1 flex-col gap-4 p-4">
-          <div className="grid auto-rows-min gap-4 md:grid-cols-3">
-            <div className="bg-muted/50 aspect-video rounded-xl" />
-            <div className="bg-muted/50 aspect-video rounded-xl" />
-            <div className="bg-muted/50 aspect-video rounded-xl" />
-          </div>
-          <div className="bg-muted/50 min-h-[100vh] flex-1 rounded-xl md:min-h-min" />
+    <div>
+      <DashboardHeader />
+
+      <div className="flex flex-1 flex-col gap-4 p-4">
+        {/* Welcome Section */}
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold tracking-tight">Welcome back, Alex!</h1>
+          <p className="text-muted-foreground">
+            Here&apos;s what&apos;s happening in your learning journey today.
+          </p>
         </div>
-      </SidebarInset>
-    </SidebarProvider>
+
+        {/* Stats Cards */}
+        <StatsCards />
+
+        {/* Main Content Grid */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+          <LearningProgress />
+          <UpcomingEvents />
+        </div>
+
+        {/* Recent Activity */}
+        <RecentActivity />
+      </div>
+    </div>
   )
 }

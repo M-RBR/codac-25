@@ -1,15 +1,17 @@
-import * as React from 'react';
-
+import Image from 'next/image';
 import type {
   SlateElementProps,
   TCaptionProps,
   TImageElement,
   TResizableProps,
 } from 'platejs';
-
 import { NodeApi, SlateElement } from 'platejs';
+import * as React from 'react';
+
+
 
 import { cn } from '@/lib/utils';
+
 
 export function ImageElementStatic(
   props: SlateElementProps<TImageElement & TCaptionProps & TResizableProps>
@@ -23,12 +25,12 @@ export function ImageElementStatic(
           className="relative max-w-full min-w-[92px]"
           style={{ textAlign: align }}
         >
-          <img
+          <Image
             className={cn(
               'w-full max-w-full cursor-default object-cover px-0',
               'rounded-sm'
             )}
-            alt={(props.attributes as any).alt}
+            alt={props.element.alt as string}
             src={url}
           />
           {caption && (

@@ -1,14 +1,14 @@
 'use client';
 
-import * as React from 'react';
 
-import type { TImageElement } from 'platejs';
-import type { PlateElementProps } from 'platejs/react';
 
 import { useDraggable } from '@platejs/dnd';
 import { Image, ImagePlugin, useMediaState } from '@platejs/media/react';
 import { ResizableProvider, useResizableValue } from '@platejs/resizable';
+import type { TImageElement } from 'platejs';
+import type { PlateElementProps } from 'platejs/react';
 import { PlateElement, withHOC } from 'platejs/react';
+import * as React from 'react';
 
 import { cn } from '@/lib/utils';
 
@@ -31,8 +31,8 @@ export const ImageElement = withHOC(
     });
 
     return (
-      <MediaToolbar plugin={ImagePlugin}>
-        <PlateElement {...props} className="py-2.5">
+      <PlateElement {...props} className="py-2.5">
+        <MediaToolbar plugin={ImagePlugin}>
           <figure className="group relative m-0" contentEditable={false}>
             <Resizable
               align={align}
@@ -53,7 +53,7 @@ export const ImageElement = withHOC(
                   focused && selected && 'ring-2 ring-ring ring-offset-2',
                   isDragging && 'opacity-50'
                 )}
-                alt={(props.attributes as any).alt}
+                alt={props.element.alt as string | undefined}
               />
               <ResizeHandle
                 className={mediaResizeHandleVariants({
@@ -73,10 +73,10 @@ export const ImageElement = withHOC(
               />
             </Caption>
           </figure>
+        </MediaToolbar>
 
-          {props.children}
-        </PlateElement>
-      </MediaToolbar>
+        {props.children}
+      </PlateElement>
     );
   }
 );

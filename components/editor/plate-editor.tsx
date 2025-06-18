@@ -1,27 +1,52 @@
 'use client';
 
+import { type Value } from 'platejs';
+import { createPlateEditor, Plate } from 'platejs/react';
 import * as React from 'react';
 
-import { Plate, usePlateEditor } from 'platejs/react';
 import { Editor, EditorContainer } from '@/components/ui/editor';
+
 import { EditorKit } from './editor-kit';
 
-export function PlateEditor() {
-  const editor = usePlateEditor({
-    plugins: EditorKit,
-    value,
-  });
 
+export function PlateEditor({
+  initialValue,
+  children,
+}: {
+  /**
+   * Initial document value to load into the editor. When omitted, a default
+   * demo value will be used.
+   */
+  initialValue?: Value;
+  /**
+   * Optional children that will have access to the Plate editor context.
+   * This is useful for customization such as adding a toolbar that relies on
+   * hooks like `useEditorRef` or `useEditorSelector`.
+   */
+  children?: React.ReactNode;
+}) {
+
+  //   const editor = usePlateEditor({
+  //     plugins: EditorKit,
+  //     value: initialValue ?? defaultValue,
+  // });
+  const editor = createPlateEditor({
+    plugins: EditorKit,
+    value: initialValue ?? defaultValue,
+  });
   return (
-    <Plate editor={editor}>
-      <EditorContainer>
-        <Editor variant="demo" />
-      </EditorContainer>
-    </Plate>
+    <div className="w-full max-w-full overflow-hidden">
+      <Plate editor={editor}>
+        {children}
+        <EditorContainer className="max-w-full">
+          <Editor variant="default" className="max-w-full" />
+        </EditorContainer>
+      </Plate>
+    </div>
   );
 }
 
-const value = [
+const defaultValue = [
   {
     children: [{ text: 'Welcome to the Plate Playground!' }],
     type: 'h1',
@@ -129,19 +154,19 @@ const value = [
     ],
     type: 'p',
   },
-  // {
-  //   children: [
-  //     {
-  //       text: 'Block-level suggestions are also supported for broader feedback.',
-  //     },
-  //   ],
-  //   suggestion: {
-  //     suggestionId: 'suggestionBlock1',
-  //     type: 'block',
-  //     userId: 'charlie',
-  //   },
-  //   type: 'p',
-  // },
+  {
+    children: [
+      {
+        text: 'Block-level suggestions are also supported for broader feedback.',
+      },
+    ],
+    suggestion: {
+      suggestionId: 'suggestionBlock1',
+      type: 'block',
+      userId: 'charlie',
+    },
+    type: 'p',
+  },
   // AI Section
   {
     children: [{ text: 'AI-Powered Editing' }],

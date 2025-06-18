@@ -1,12 +1,11 @@
 'use client';
 
-import * as React from 'react';
 
 import type { VariantProps } from 'class-variance-authority';
-import type { PlateContentProps } from 'platejs/react';
-
 import { cva } from 'class-variance-authority';
+import type { PlateContentProps } from 'platejs/react';
 import { PlateContainer, PlateContent } from 'platejs/react';
+import * as React from 'react';
 
 import { cn } from '@/lib/utils';
 
@@ -26,6 +25,7 @@ const editorContainerVariants = cva(
         ),
         default: 'h-full',
         demo: 'h-[650px]',
+        responsive: 'h-full min-h-0 overflow-y-auto',
         select: cn(
           'group rounded-md border border-input ring-offset-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2',
           'has-data-readonly:w-fit has-data-readonly:cursor-default has-data-readonly:border-transparent has-data-readonly:focus-within:[box-shadow:none]'
@@ -80,6 +80,7 @@ const editorVariants = cva(
           'size-full px-16 pt-4 pb-72 text-base sm:px-[max(64px,calc(50%-350px))]',
         demo: 'size-full px-16 pt-4 pb-72 text-base sm:px-[max(64px,calc(50%-350px))]',
         fullWidth: 'size-full px-16 pt-4 pb-72 text-base sm:px-24',
+        responsive: 'size-full px-4 py-4 text-base sm:px-6 sm:py-6 md:px-8 lg:px-12 xl:px-16',
         none: '',
         select: 'px-3 py-2 text-base data-readonly:w-fit',
       },
