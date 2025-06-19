@@ -31,6 +31,7 @@ const eslintConfig = [
       'react/require-default-props': 'off',
       'react/jsx-uses-react': 'off',
       'react/react-in-jsx-scope': 'off',
+      'react/no-unescaped-entities': 'warn',
       
       // General code quality
       'no-console': ['warn', { allow: ['warn', 'error'] }],

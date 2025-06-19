@@ -34,6 +34,7 @@ import { NavUser } from './nav-user';
 
 const data = {
   user: {
+    id: 'user_alex_mueller_2024', // This would come from your auth system
     name: 'Alex Müller',
     email: 'alex.mueller@student.codeacademyberlin.com',
     avatar: '/avatars/student-1.jpg',
@@ -68,20 +69,24 @@ const data = {
       icon: Book,
       items: [
         {
-          title: 'Current Courses',
-          url: '/learning/courses',
+          title: 'Learning Overview',
+          url: '/learning',
         },
         {
-          title: 'Assignments',
-          url: '/learning/assignments',
+          title: 'Web Development',
+          url: '/learning/web',
         },
         {
-          title: 'Resources',
-          url: '/learning/resources',
+          title: 'Data Science',
+          url: '/learning/data',
         },
         {
-          title: 'Notes',
-          url: '/learning/notes',
+          title: 'Career Services',
+          url: '/learning/career',
+        },
+        {
+          title: 'All Materials',
+          url: '/docs?type=COURSE_MATERIAL',
         },
       ],
     },
@@ -91,21 +96,33 @@ const data = {
       icon: Users,
       items: [
         {
-          title: 'Discussions',
-          url: '/community/discussions',
+          title: 'Cohorts',
+          url: '/community/cohorts',
         },
         {
-          title: 'Showcase',
-          url: '/community/showcase',
+          title: 'Students',
+          url: '/community/students',
         },
         {
-          title: 'Events',
-          url: '/community/events',
+          title: 'Mentors',
+          url: '/community/mentors',
         },
         {
-          title: 'Study Groups',
-          url: '/community/groups',
+          title: 'Alumni',
+          url: '/community/alumni',
         },
+        // {
+        //   title: 'Showcase',
+        //   url: '/community/showcase',
+        // },
+        // {
+        //   title: 'Events',
+        //   url: '/community/events',
+        // },
+        // {
+        //   title: 'Study Groups',
+        //   url: '/community/groups',
+        // },
       ],
     },
     {
