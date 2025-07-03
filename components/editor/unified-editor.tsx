@@ -2,8 +2,9 @@
 import { AlertCircle, CheckCircle2, Cloud, CloudOff, Save } from "lucide-react";
 import { Value } from "platejs";
 import { PlateController, useEditorRef, useEditorSelector } from "platejs/react";
-import { createContext, useContext, useCallback, useEffect, useRef, useState } from "react";
+import React, { createContext, useContext, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { updateDoc } from "@/actions/doc/update-doc";
 import { updateLessonContent } from "@/actions/lms/update-lesson";
 import { Button } from "@/components/ui/button";
 import { useDebounce } from "@/hooks/use-debounce";
@@ -20,7 +21,6 @@ interface SaveStatus {
     hasUnsavedChanges: boolean;
 }
 
-// Context for save functionality
 interface SaveContextValue {
     triggerSave: () => Promise<void>;
     saveStatus: SaveStatus;
@@ -31,7 +31,6 @@ const SaveContext = createContext<SaveContextValue | null>(null);
 export const useSave = () => {
     const context = useContext(SaveContext);
     if (!context) {
-        // Provide a fallback when context is not available
         return {
             triggerSave: async () => {
                 console.warn('Save context not available - save operation skipped');
@@ -45,7 +44,10 @@ export const useSave = () => {
     return context;
 };
 
-function SaveStatusIndicator({ status, onManualSave }: {
+const SaveStatusIndicator = React.memo(function SaveStatusIndicator({
+    status,
+    onManualSave
+}: {
     status: SaveStatus;
     onManualSave: () => void;
 }) {
@@ -99,81 +101,95 @@ function SaveStatusIndicator({ status, onManualSave }: {
                 disabled={status.status === 'saving'}
             >
                 <Save className="h-4 w-4 mr-1" />
-                Save
+                Save Now
             </Button>
         </div>
     );
-}
+});
 
-export function PlateProvider({ children }: { children: React.ReactNode }) {
-    return (
-        <PlateController>
-            {children}
-        </PlateController>
-    )
-}
-
-export const PlateLessonEditor = ({ lessonId, initialValue, showStatusBar = false, canEdit = false }: {
-    lessonId: string;
+interface UnifiedEditorProps {
     initialValue: Value;
+    contentId: string;
+    contentType: 'document' | 'lesson';
     showStatusBar?: boolean;
     canEdit?: boolean;
-}) => {
+    readOnly?: boolean;
+    children?: React.ReactNode;
+}
+
+export const UnifiedEditor = React.memo(function UnifiedEditor({
+    initialValue,
+    contentId,
+    contentType,
+    showStatusBar = false,
+    canEdit = false,
+    readOnly,
+    children
+}: UnifiedEditorProps) {
+    const isReadOnly = readOnly ?? !canEdit;
+
     return (
         <PlateController>
             <div className="h-full flex flex-col">
-                <PlateEditor initialValue={initialValue} readOnly={!canEdit}>
-                    <PlateStateUpdater lessonId={lessonId} showStatusBar={showStatusBar} initialValue={initialValue} canEdit={canEdit} />
+                <PlateEditor initialValue={initialValue} readOnly={isReadOnly}>
+                    {children}
+                    <UnifiedStateUpdater
+                        contentId={contentId}
+                        contentType={contentType}
+                        showStatusBar={showStatusBar}
+                        initialValue={initialValue}
+                        canEdit={canEdit}
+                    />
                 </PlateEditor>
             </div>
         </PlateController>
-    )
-}
+    );
+});
 
-const PlateStateUpdater = ({ lessonId, showStatusBar = false, initialValue, canEdit = false }: {
-    lessonId: string;
+const UnifiedStateUpdater = React.memo(function UnifiedStateUpdater({
+    contentId,
+    contentType,
+    showStatusBar = false,
+    initialValue,
+    canEdit = false
+}: {
+    contentId: string;
+    contentType: 'document' | 'lesson';
     showStatusBar?: boolean;
     initialValue?: Value;
     canEdit?: boolean;
-}) => {
+}) {
     const editor = useEditorRef();
     const hasActiveUploads = useHasActiveUploads();
 
-    // Track only the editor content (children), not the entire state
     const editorContent = useEditorSelector((editor) => editor?.children, []);
 
-    // Save status state
     const [saveStatus, setSaveStatus] = useState<SaveStatus>({
         status: 'idle',
         hasUnsavedChanges: false,
     });
 
-    // Debounce only the content changes, not all editor state changes
     const debouncedContent = useDebounce(editorContent, 5000);
 
-    // Keep track of save status
     const isSavingRef = useRef(false);
     const lastSavedContentRef = useRef<Value | null>(initialValue || null);
     const hasInitializedRef = useRef(false);
 
-    // Save to database function
     const saveToDatabase = useCallback(async (content: Value, isManual = false) => {
         if (!canEdit || isSavingRef.current || !content || !editor?.children) {
             return;
         }
 
-        // Prevent autosave when uploads are in progress (but allow manual saves)
         if (!isManual && hasActiveUploads) {
             logger.debug('Skipping autosave due to active uploads', {
                 action: 'autosave_skipped',
-                resource: 'lesson',
-                resourceId: lessonId,
+                resource: contentType,
+                resourceId: contentId,
                 metadata: { hasActiveUploads }
             });
             return;
         }
 
-        // Check if content has actually changed (skip for manual saves)
         if (!isManual && JSON.stringify(content) === JSON.stringify(lastSavedContentRef.current)) {
             return;
         }
@@ -182,7 +198,12 @@ const PlateStateUpdater = ({ lessonId, showStatusBar = false, initialValue, canE
         setSaveStatus(prev => ({ ...prev, status: 'saving' }));
 
         try {
-            const result = await updateLessonContent(lessonId, content);
+            let result;
+            if (contentType === 'lesson') {
+                result = await updateLessonContent(contentId, content);
+            } else {
+                result = await updateDoc({ id: contentId, content: content });
+            }
 
             if (result.success) {
                 lastSavedContentRef.current = content;
@@ -192,14 +213,19 @@ const PlateStateUpdater = ({ lessonId, showStatusBar = false, initialValue, canE
                     hasUnsavedChanges: false,
                 });
 
-                logger.info('Lesson auto-saved successfully', {
-                    action: 'lesson_autosave',
-                    resource: 'lesson',
-                    resourceId: lessonId,
+                logger.info(`${contentType} auto-saved successfully`, {
+                    action: `${contentType}_autosave`,
+                    resource: contentType,
+                    resourceId: contentId,
                     metadata: { isManual, contentLength: JSON.stringify(content).length }
                 });
             } else {
-                throw new Error(result.error || 'Failed to save lesson');
+                const errorMessage = typeof result.error === 'string'
+                    ? result.error
+                    : Array.isArray(result.error)
+                        ? result.error.map(e => e.message).join(', ')
+                        : `Failed to save ${contentType}`;
+                throw new Error(errorMessage);
             }
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
@@ -209,25 +235,23 @@ const PlateStateUpdater = ({ lessonId, showStatusBar = false, initialValue, canE
                 hasUnsavedChanges: true,
             });
 
-            logger.error('Lesson auto-save failed', error instanceof Error ? error : new Error(String(error)), {
-                action: 'lesson_autosave',
-                resource: 'lesson',
-                resourceId: lessonId,
+            logger.error(`${contentType} auto-save failed`, error instanceof Error ? error : new Error(String(error)), {
+                action: `${contentType}_autosave`,
+                resource: contentType,
+                resourceId: contentId,
                 metadata: { isManual }
             });
         } finally {
             isSavingRef.current = false;
         }
-    }, [lessonId, canEdit, editor, hasActiveUploads]);
+    }, [contentId, contentType, canEdit, editor, hasActiveUploads]);
 
-    // Manual save function
     const triggerManualSave = useCallback(async () => {
         if (editor?.children) {
             await saveToDatabase(editor.children, true);
         }
     }, [editor, saveToDatabase]);
 
-    // Auto-save effect
     useEffect(() => {
         if (!canEdit || !hasInitializedRef.current) {
             hasInitializedRef.current = true;
@@ -239,7 +263,6 @@ const PlateStateUpdater = ({ lessonId, showStatusBar = false, initialValue, canE
         }
     }, [debouncedContent, saveToDatabase, canEdit]);
 
-    // Track unsaved changes
     useEffect(() => {
         if (!canEdit || !editorContent) return;
 
@@ -250,10 +273,10 @@ const PlateStateUpdater = ({ lessonId, showStatusBar = false, initialValue, canE
         }));
     }, [editorContent, canEdit]);
 
-    const saveContextValue: SaveContextValue = {
+    const saveContextValue: SaveContextValue = useMemo(() => ({
         triggerSave: triggerManualSave,
         saveStatus,
-    };
+    }), [triggerManualSave, saveStatus]);
 
     return (
         <SaveContext.Provider value={saveContextValue}>
@@ -262,4 +285,7 @@ const PlateStateUpdater = ({ lessonId, showStatusBar = false, initialValue, canE
             )}
         </SaveContext.Provider>
     );
-}; 
+});
+
+// Export the save context for use in toolbars
+export { SaveContext }; 
