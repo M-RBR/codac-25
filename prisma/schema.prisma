@@ -102,7 +102,7 @@ model User {
   jobApplications JobApplication[] @relation("JobApplications")
 
   // Duck Relations
-  ducks           Duck[]
+  ducks Duck[]
 
   @@map("users")
 }
@@ -357,8 +357,30 @@ model Mentorship {
   acceptedAt DateTime?
   endedAt    DateTime?
 
+  // Add sessions relation
+  sessions MentorSession[]
+
   @@unique([mentorId, menteeId])
   @@map("mentorships")
+}
+
+// Mentor Session Booking Model
+model MentorSession {
+  id           String              @id @default(cuid())
+  status       MentorSessionStatus @default(PENDING)
+  scheduledFor DateTime
+  completedAt  DateTime?
+  notes        String?
+  feedback     String?
+
+  // Relation to mentorship
+  mentorshipId String
+  mentorship   Mentorship @relation(fields: [mentorshipId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("mentor_sessions")
 }
 
 // Gamification & Achievements
@@ -600,6 +622,14 @@ enum MentorshipStatus {
   DECLINED
 }
 
+enum MentorSessionStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  DECLINED
+}
+
 enum AchievementType {
   COURSE_COMPLETION
   STREAK
@@ -730,13 +760,13 @@ enum JobApplicationStatus {
 }
 
 model Quiz {
-  id          String     @id @default(cuid())
-  topic       String
-  difficulty  String
-  quizTitle   String     
-  questions   Question[]
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  id         String     @id @default(cuid())
+  topic      String
+  difficulty String
+  quizTitle  String
+  questions  Question[]
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
 
   quizResults QuizResult[]
 }
