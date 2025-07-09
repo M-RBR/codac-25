@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button"
 import { Icons } from "@/components/ui/icons"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Separator } from "@/components/ui/separator"
 
 interface SignInFormProps {
   callbackUrl?: string;
@@ -50,7 +49,6 @@ export function SignInForm({
   // Form state
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [magicLinkEmail, setMagicLinkEmail] = useState("")
   const [isCredentialsLoading, setIsCredentialsLoading] = useState(false)
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
   const [isMagicLinkLoading, setIsMagicLinkLoading] = useState(false)
@@ -85,194 +83,89 @@ export function SignInForm({
       return;
     }
 
-    const handleGoogleSignIn = async () => {
-      setIsGoogleLoading(true)
-      setError(undefined)
+    setIsCredentialsLoading(true);
+    setError(undefined);
 
-      try {
-        await signIn("google", {
-          callbackUrl,
-          redirect: true,
-        })
-      } catch {
-        setError("An error occurred during Google sign in.")
-        setIsGoogleLoading(false)
+    try {
+      const result = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
+
+      if (result?.error) {
+        setError(result.error);
+      } else if (result?.ok) {
+        router.push(callbackUrl);
       }
+    } catch {
+      setError("An error occurred during sign in.");
+    } finally {
+      setIsCredentialsLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setIsGoogleLoading(true);
+    setError(undefined);
+
+    try {
+      await signIn("google", { callbackUrl });
+    } catch {
+      setError("An error occurred during Google sign in.");
+    } finally {
+      setIsGoogleLoading(false);
+    }
+  };
+
+  const handleMagicLinkSignIn = async () => {
+    if (!email) {
+      setError("Please enter your email address");
+      return;
     }
 
-    const handleMagicLinkSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-      e.preventDefault()
+    setIsMagicLinkLoading(true);
+    setError(undefined);
 
-      if (!magicLinkEmail) {
-        setError("Email is required for magic link")
-        return
+    try {
+      const result = await signIn("email", {
+        email,
+        callbackUrl,
+        redirect: false,
+      });
+
+      if (result?.error) {
+        setError(result.error);
       }
-
-      setIsMagicLinkLoading(true)
-      setError(undefined)
-
-      try {
-        const result = await signIn("email", {
-          email: magicLinkEmail,
-          callbackUrl,
-          redirect: false,
-        })
-
-        if (result?.error) {
-          setError(result.error)
-        } else if (result?.ok) {
-          // Email provider returns ok=true when email is sent
-          router.push("/auth/verify-request")
-        }
-      } catch {
-        setError("An error occurred while sending the magic link.")
-      } finally {
-        setIsMagicLinkLoading(false)
-      }
+    } catch {
+      setError("An error occurred during magic link sign in.");
+    } finally {
+      setIsMagicLinkLoading(false);
     }
+  };
 
-    if (result?.error) {
-      setError(result.error);
-    } else if (result?.ok) {
-      router.push(callbackUrl);
-    }
-  } catch {
-    setError("An error occurred during sign in.");
-  } finally {
-    setIsCredentialsLoading(false);
+  const isAnyLoading = isCredentialsLoading || isGoogleLoading || isMagicLinkLoading;
+
+  // Show loading while checking authentication status
+  if (status === "loading") {
+    return (
+      <div className="flex justify-center items-center py-8">
+        <Icons.spinner className="h-6 w-6 animate-spin" />
+      </div>
+    );
   }
-};
 
-const isAnyLoading = isCredentialsLoading || isGoogleLoading || isMagicLinkLoading
+  return (
+    <div className="space-y-6">
+      {error && (
+        <Alert variant="destructive">
+          <AlertDescription>
+            {getErrorMessage(error)}
+          </AlertDescription>
+        </Alert>
+      )}
 
-return (
-  <div className="flex justify-center items-center py-8">
-    <Icons.spinner className="h-6 w-6 animate-spin" />
-  </div>
-);
-  }
-
-{/* Google OAuth */ }
-            <Button
-                type="button"
-                variant="outline"
-                className="w-full"
-                onClick={handleGoogleSignIn}
-                disabled={isAnyLoading}
-            >
-                {isGoogleLoading ? (
-                    <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                    <Icons.google className="mr-2 h-4 w-4" />
-                )}
-                Continue with Google
-            </Button>
-
-            <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                    <Separator className="w-full" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-2 text-muted-foreground">
-                        Or continue with
-                    </span>
-                </div>
-            </div>
-
-{/* Email Magic Link */ }
-            <form onSubmit={handleMagicLinkSubmit} className="space-y-4">
-                <div className="space-y-2">
-                    <Label htmlFor="magic-link-email">Email (Magic Link)</Label>
-                    <Input
-                        id="magic-link-email"
-                        name="magic-link-email"
-                        type="email"
-                        placeholder="Enter your email for magic link"
-                        value={magicLinkEmail}
-                        onChange={(e) => setMagicLinkEmail(e.target.value)}
-                        required
-                        disabled={isAnyLoading}
-                    />
-                </div>
-                <Button type="submit" variant="outline" className="w-full" disabled={isAnyLoading}>
-                    {isMagicLinkLoading ? (
-                        <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                        <Icons.email className="mr-2 h-4 w-4" />
-                    )}
-                    Send Magic Link
-                </Button>
-            </form>
-
-            <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                    <Separator className="w-full" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-2 text-muted-foreground">
-                        Or sign in with password
-                    </span>
-                </div>
-            </div>
-
-{/* Credentials Form */ }
-            <form onSubmit={handleCredentialsSubmit} className="space-y-4">
-                <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                        id="email"
-                        name="email"
-                        type="email"
-                        placeholder="Enter your email address"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        required
-                        disabled={isAnyLoading}
-                    />
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="password">Password</Label>
-                    <Input
-                        id="password"
-                        name="password"
-                        type="password"
-                        placeholder="Enter your password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                        disabled={isAnyLoading}
-                    />
-                </div>
-                <Button type="submit" className="w-full" disabled={isAnyLoading}>
-                    {isCredentialsLoading && <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />}
-                    Sign In
-                </Button>
-            </form>
-
-            <div className="text-center text-sm">
-                <span className="text-muted-foreground">Don&apos;t have an account? </span>
-                <Button
-                    variant="link"
-                    className="p-0 h-auto font-normal"
-                    onClick={() => router.push(`/auth/signup?callbackUrl=${encodeURIComponent(callbackUrl)}`)}
-                >
-                    Sign up here
-                </Button>
-            </div>
-        </div >
-  <div className="relative flex justify-center text-xs uppercase">
-    <span className="bg-card px-2 text-muted-foreground">
-      Or continue with
-    </span>
-  </div>
-      </div >
-
-  { error && (
-    <Alert variant="destructive">
-      <AlertDescription>{getErrorMessage(error)}</AlertDescription>
-    </Alert>
-  )}
-
+      {/* Credentials Form */}
       <form onSubmit={handleCredentialsSubmit} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
@@ -284,7 +177,7 @@ return (
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            disabled={isLoading}
+            disabled={isAnyLoading}
           />
         </div>
         <div className="space-y-2">
@@ -297,16 +190,45 @@ return (
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            disabled={isLoading}
+            disabled={isAnyLoading}
           />
         </div>
-        <Button type="submit" className="w-full" disabled={isLoading}>
-          {isCredentialsLoading && (
-            <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
-          )}
+        <Button type="submit" className="w-full" disabled={isAnyLoading}>
+          {isCredentialsLoading && <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />}
           Sign In
         </Button>
       </form>
+
+      <div className="relative flex justify-center text-xs uppercase">
+        <span className="bg-card px-2 text-muted-foreground">
+          Or continue with
+        </span>
+      </div>
+
+      {/* OAuth Buttons */}
+      <div className="space-y-3">
+        <Button
+          variant="outline"
+          className="w-full"
+          onClick={handleGoogleSignIn}
+          disabled={isAnyLoading}
+        >
+          {isGoogleLoading && <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />}
+          <Icons.google className="mr-2 h-4 w-4" />
+          Google
+        </Button>
+
+        <Button
+          variant="outline"
+          className="w-full"
+          onClick={handleMagicLinkSignIn}
+          disabled={isAnyLoading || !email}
+        >
+          {isMagicLinkLoading && <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />}
+          <Icons.email className="mr-2 h-4 w-4" />
+          Send Magic Link
+        </Button>
+      </div>
 
       <div className="text-center text-sm">
         <span className="text-muted-foreground">Don't have an account? </span>
@@ -318,11 +240,11 @@ return (
               `/auth/signup?callbackUrl=${encodeURIComponent(callbackUrl)}`
             )
           }
-          disabled={isLoading}
+          disabled={isAnyLoading}
         >
           Sign up here
         </Button>
       </div>
-    </div >
+    </div>
   );
 }
