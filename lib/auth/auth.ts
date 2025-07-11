@@ -36,7 +36,18 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
           // Find user in database
           const user = await prisma.user.findUnique({
-            where: { email }
+            where: { email },
+            select: {
+              id: true,
+              email: true,
+              name: true,
+              // Exclude image to prevent large JWT cookies
+              password: true,
+              role: true,
+              status: true,
+              cohortId: true,
+              emailVerified: true,
+            }
           })
 
           if (!user || !user.password) {
@@ -51,11 +62,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           }
 
           // Return user object with all required fields
+          // Note: Exclude image/avatar to prevent large JWT cookies
           return {
             id: user.id,
             email: user.email,
             name: user.name,
-            image: user.image,
             role: user.role,
             status: user.status,
             cohortId: user.cohortId,
@@ -100,6 +111,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.role = user.role
         token.status = user.status
         token.cohortId = user.cohortId
+        // Explicitly exclude avatar from JWT to prevent large cookies
+        // Avatar will be fetched from database when needed
       }
       // For existing tokens, fetch from database if needed
       else if (token.sub && !token.role) {
