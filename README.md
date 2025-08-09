@@ -16,7 +16,7 @@ A comprehensive learning management system built with Next.js 15, TypeScript, an
 
 - **Framework**: Next.js 15 with App Router
 - **Language**: TypeScript with strict mode
-- **Database**: SQLite with Prisma ORM
+- **Database**: PostgreSQL with Prisma ORM
 - **Authentication**: NextAuth.js v5
 - **Editor**: Plate.js with unified content management
 - **UI**: Shadcn/UI + Tailwind CSS + Radix UI
@@ -29,6 +29,7 @@ A comprehensive learning management system built with Next.js 15, TypeScript, an
 - Node.js 18+
 - pnpm 8+ (package manager)
 - Git
+- PostgreSQL 13+ (database server)
 
 ## 🚀 Quick Start
 
@@ -131,13 +132,23 @@ The application uses a **unified editor architecture** with Plate.js:
 
 ### Database Design
 
-- SQLite with Prisma ORM for development
+- PostgreSQL with Prisma ORM for development
 - Comprehensive schema covering users, courses, documents, and community features
 - Efficient queries with proper indexing and relations
 
 ## 🧹 Recent Improvements
 
-### Code Cleanup (Latest)
+### AI Code Cleanup (Latest)
+
+- ✅ Removed fake/mock AI implementations from chat and copilot features
+- ✅ Replaced hardcoded demo user IDs with proper authentication
+- ✅ Cleaned up demo content files and sample data
+- ✅ Removed faker.js dependency and mock data generation
+- ✅ Updated API routes to use proper authentication
+- ✅ Improved error handling for AI features
+- ✅ Removed placeholder comments and TODO items
+
+### Code Cleanup (Previous)
 
 - ✅ Removed duplicate and unused components
 - ✅ Consolidated editor implementations into `UnifiedEditor`
@@ -148,6 +159,10 @@ The application uses a **unified editor architecture** with Plate.js:
 
 ### Key Removals
 
+- Removed fake AI chat and copilot implementations
+- Removed hardcoded demo user IDs (`demo-user`, `demo@example.com`)
+- Removed demo content files (`demo-data-science-content.tsx`, `demo-document.tsx`)
+- Removed faker.js dependency and mock data generation
 - Removed duplicate `app-sidebar-new.tsx`
 - Removed legacy `PlateLessonEditor` and `PlateAutoSaveEditor`
 - Cleaned up unused middleware alternatives
@@ -166,8 +181,8 @@ The application uses a **unified editor architecture** with Plate.js:
 Copy `env.template` to `.env` and configure:
 
 ```env
-# Database
-DATABASE_URL="file:./dev.db"
+# Database (PostgreSQL)
+DATABASE_URL="postgresql://username:password@localhost:5432/codac"
 
 # Authentication
 NEXTAUTH_URL="http://localhost:3000"
