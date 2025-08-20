@@ -47,3 +47,11 @@ next-env.d.ts
 /dist
 
 prisma/dev.db
+.claude/settings.local.json
+
+# Playwright
+node_modules/
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
