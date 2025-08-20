@@ -11,8 +11,11 @@ import { logger } from "@/lib/logger"
 
 // Module augmentations are handled in types/next-auth.d.ts
 
+// Use type assertion to bypass NextAuth v5 beta compatibility issues with Prisma adapter
+const customPrismaAdapter = PrismaAdapter(prisma) as any
+
 export const { handlers, signIn, signOut, auth } = NextAuth({
-  adapter: PrismaAdapter(prisma),
+  adapter: customPrismaAdapter,
   trustHost: true,
   providers: [
     Google,
@@ -160,10 +163,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         await prisma.user.update({
           where: { id: user.id },
           data: {
-            role: "STUDENT",
-            status: "ACTIVE",
+            role: "STUDENT" as UserRole,
+            status: "ACTIVE" as UserStatus,
           },
         })
+        logger.info("User created with default role and status", { userId: user.id })
       } catch (error) {
         logger.error("Error updating user in createUser event", error instanceof Error ? error : new Error(String(error)))
       }
