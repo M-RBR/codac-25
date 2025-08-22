@@ -168,15 +168,6 @@ codac-25/
 └── prisma/                # Database schema and migrations
 ```
 
-## 🔧 Architecture
-
-### Editor System
-
-The application uses a **unified editor architecture** with Plate.js:
-
-- `UnifiedEditor`: Single editor component handling both documents and lessons
-- Auto-save functionality with status indicators
-- Support for rich media, equations, and collaborative features
 
 ### Authentication & Authorization
 
@@ -190,37 +181,7 @@ The application uses a **unified editor architecture** with Plate.js:
 - Comprehensive schema covering users, courses, documents, and community features
 - Efficient queries with proper indexing and relations
 
-## 🧹 Recent Improvements
 
-### AI Code Cleanup (Latest)
-
-- ✅ Removed fake/mock AI implementations from chat and copilot features
-- ✅ Replaced hardcoded demo user IDs with proper authentication
-- ✅ Cleaned up demo content files and sample data
-- ✅ Removed faker.js dependency and mock data generation
-- ✅ Updated API routes to use proper authentication
-- ✅ Improved error handling for AI features
-- ✅ Removed placeholder comments and TODO items
-
-### Code Cleanup (Previous)
-
-- ✅ Removed duplicate and unused components
-- ✅ Consolidated editor implementations into `UnifiedEditor`
-- ✅ Fixed all TypeScript errors and linting issues
-- ✅ Cleaned up commented/disabled code
-- ✅ Improved build performance (65% faster)
-- ✅ Organized project structure
-
-### Key Removals
-
-- Removed fake AI chat and copilot implementations
-- Removed hardcoded demo user IDs (`demo-user`, `demo@example.com`)
-- Removed demo content files (`demo-data-science-content.tsx`, `demo-document.tsx`)
-- Removed faker.js dependency and mock data generation
-- Removed duplicate `app-sidebar-new.tsx`
-- Removed legacy `PlateLessonEditor` and `PlateAutoSaveEditor`
-- Cleaned up unused middleware alternatives
-- Removed TypeScript build cache from version control
 
 ## 🧪 Testing & Quality Assurance
 
@@ -231,12 +192,6 @@ CODAC includes comprehensive testing infrastructure to ensure reliability and co
 - **TypeScript**: Strict type checking for compile-time error detection
 - **ESLint**: Code linting with Next.js and TypeScript rules
 
-### **Test Coverage**
-- ✅ **Authentication Flow**: Registration, login, OAuth, and session management
-- ✅ **User Management**: Profile updates, avatar uploads, and permissions
-- ✅ **Content Management**: Document creation, editing, and auto-save functionality
-- ✅ **Accessibility**: Screen reader compatibility and keyboard navigation
-- ✅ **Database Operations**: CRUD operations and data integrity
 
 ### **Running Tests**
 ```bash
@@ -261,10 +216,6 @@ pnpm test:report
 
 ## 📖 Documentation
 
-### **Getting Started**
-- [**SETUP.md**](SETUP.md) - Complete development environment setup
-- [**STUDENT_SETUP.md**](STUDENT_SETUP.md) - Student onboarding guide
-- [**CONTRIBUTING.md**](CONTRIBUTING.md) - Contribution guidelines and standards
 
 ### **Technical Documentation**
 - [Authentication Setup](dev-docs/AUTHENTICATION_SETUP.md) - NextAuth.js configuration
@@ -275,7 +226,7 @@ pnpm test:report
 
 ## 🔧 Environment Configuration
 
-Create a `.env.local` file in the root directory with the following variables:
+Create a `.env` file in the root directory with the following variables:
 
 ### **Database Configuration**
 ```env
@@ -298,60 +249,6 @@ AUTH_GOOGLE_SECRET="your-google-oauth-client-secret"
 AUTH_RESEND_KEY="re_your-resend-api-key"
 EMAIL_FROM="noreply@yourdomain.com"
 ```
-
-### **File Upload Service**
-```env
-# UploadThing (Required for media uploads)
-UPLOADTHING_TOKEN="your-uploadthing-token"
-```
-
-### **AI Features (Optional)**
-```env
-# OpenAI API for AI-powered features
-OPENAI_API_KEY="sk-your-openai-api-key"
-
-# Gemini API for embeddings and AI features
-GEMINI_API_KEY="your-gemini-api-key"
-```
-
-### **Development Options**
-```env
-# Test Database (Optional - for isolated testing)
-TEST_DATABASE_URL="postgresql://username:password@localhost:5432/codac_test"
-```
-
-> **📖 Detailed Setup**: See [SETUP.md](SETUP.md) for step-by-step configuration instructions including OAuth setup, database options, and troubleshooting.
-
-## 🚀 Performance & Optimization
-
-CODAC is built with performance in mind, utilizing modern web technologies for optimal user experience:
-
-### **Key Optimizations**
-- **React Server Components**: Reduced JavaScript bundle size and faster initial page loads
-- **App Router**: Optimized routing with automatic code splitting
-- **Image Optimization**: Next.js Image component with automatic WebP conversion
-- **Database Optimization**: Prisma with efficient queries and proper indexing
-- **Caching Strategy**: Built-in Next.js caching for static content and API responses
-
-### **Performance Metrics**
-- **Build Performance**: 65% faster builds after recent optimizations
-- **Bundle Size**: Optimized with tree-shaking and dynamic imports
-- **Core Web Vitals**: Optimized for LCP, FID, and CLS metrics
-
-## 🌐 Deployment
-
-### **Recommended Platforms**
-- **[Vercel](https://vercel.com)** - Optimal for Next.js applications with zero configuration
-- **[Railway](https://railway.app)** - Full-stack deployment with PostgreSQL integration
-- **[PlanetScale](https://planetscale.com)** - Serverless database platform for production
-
-### **Deployment Checklist**
-- [ ] Configure production environment variables
-- [ ] Set up production database (PostgreSQL)
-- [ ] Configure OAuth redirect URIs for production domain
-- [ ] Set up file upload service (UploadThing)
-- [ ] Configure email service (Resend)
-- [ ] Run database migrations: `npx prisma migrate deploy`
 
 ## 🤝 Contributing
 
