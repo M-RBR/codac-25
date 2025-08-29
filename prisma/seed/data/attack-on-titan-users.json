@@ -166,7 +166,7 @@
     "currentJob": "Senior Full-Stack Developer",
     "currentCompany": "TechCorp Inc.",
     "portfolioUrl": "https://marco-portfolio.dev",
-    "graduationDate": "2023-12-15"
+    "endDate": "2023-12-15"
   },
   {
     "name": "Annie Leonhart",
@@ -181,6 +181,6 @@
     "currentJob": "Machine Learning Engineer",
     "currentCompany": "AI Research Labs",
     "portfolioUrl": "https://annie-ml.com",
-    "graduationDate": "2023-08-30"
+    "endDate": "2023-08-30"
   }
 ]

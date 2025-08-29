@@ -20,7 +20,8 @@ interface AttackOnTitanUser {
     currentJob?: string;
     currentCompany?: string;
     portfolioUrl?: string;
-    graduationDate?: string;
+    startDate?: string;
+    endDate?: string;
 }
 
 interface AttackOnTitanCohort {
@@ -102,7 +103,8 @@ export async function seedAttackOnTitan() {
                         currentJob: userData.currentJob,
                         currentCompany: userData.currentCompany,
                         portfolioUrl: userData.portfolioUrl,
-                        graduationDate: userData.graduationDate ? new Date(userData.graduationDate) : null,
+                        startDate: userData.startDate ? new Date(userData.startDate) : null,
+                        endDate: userData.endDate ? new Date(userData.endDate) : null,
                     },
                 });
             })

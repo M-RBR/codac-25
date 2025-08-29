@@ -122,10 +122,10 @@ export function StudentCard({ student, cohortName }: StudentCardProps) {
                 )}
 
                 {/* Graduation date */}
-                {student.graduationDate && (
+                {student.endDate && (
                     <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
                         <Trophy className="h-4 w-4" />
-                        <span>Graduated {formatDate(student.graduationDate)}</span>
+                        <span>Graduated {formatDate(student.endDate)}</span>
                     </div>
                 )}
 

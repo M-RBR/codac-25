@@ -97,7 +97,7 @@ A comprehensive user profile system has been implemented that allows users to vi
 The implementation leverages the existing user schema with fields:
 
 - Basic info: `name`, `email`, `avatar`, `bio`
-- Professional: `currentJob`, `currentCompany`, `graduationDate`
+- Professional: `currentJob`, `currentCompany`, `endDate`
 - Social: `linkedinUrl`, `githubUrl`, `portfolioUrl`
 - System: `role`, `status`, `cohort`, `createdAt`, `updatedAt`
 - Stats: Document counts, favorites, comments, etc.
