@@ -1,0 +1,214 @@
+'use server';
+
+import { revalidatePath } from 'next/cache';
+import { Prisma } from '@prisma/client';
+
+import { prisma } from '@/lib/db';
+import { logger } from '@/lib/logger';
+import { auth } from '@/lib/auth/auth';
+import { 
+    bulkUpdateAttendanceSchema, 
+    type BulkUpdateAttendanceInput,
+    attendanceDateSchema
+} from '@/lib/validation/attendance';
+import { 
+    type ServerActionResult, 
+    handlePrismaError 
+} from '@/lib/server-action-utils';
+
+
+// Define return type for bulk operations
+type BulkAttendanceResult = {
+    created: number;
+    updated: number;
+    skipped: number;
+    errors: string[];
+};
+
+type BulkUpdateAttendanceResult = ServerActionResult<BulkAttendanceResult>;
+
+export async function bulkUpdateAttendance(data: BulkUpdateAttendanceInput): Promise<BulkUpdateAttendanceResult> {
+    const startTime = Date.now();
+
+    try {
+        logger.logServerAction('bulk_update', 'attendance', {
+            metadata: { 
+                cohortId: data.cohortId,
+                date: data.date.toISOString(),
+                recordCount: data.attendanceRecords.length
+            }
+        });
+
+        // Get authenticated user and check permissions
+        const session = await auth();
+        if (!session?.user?.id) {
+            return {
+                success: false,
+                error: 'Authentication required'
+            };
+        }
+
+        // Check if user has MENTOR or ADMIN role
+        const user = await prisma.user.findUnique({
+            where: { id: session.user.id },
+            select: { role: true }
+        });
+
+        if (!user || (user.role !== 'MENTOR' && user.role !== 'ADMIN')) {
+            return {
+                success: false,
+                error: 'Insufficient permissions. Only mentors and admins can manage attendance.'
+            };
+        }
+
+        // Validate input data
+        const validatedData = bulkUpdateAttendanceSchema.parse(data);
+        
+        // Validate that the date is a weekday
+        attendanceDateSchema.parse(validatedData.date);
+
+        // Verify that the cohort exists
+        const cohort = await prisma.cohort.findUnique({
+            where: { id: validatedData.cohortId },
+            select: { id: true, name: true, slug: true }
+        });
+
+        if (!cohort) {
+            return {
+                success: false,
+                error: 'Cohort not found'
+            };
+        }
+
+        // Get all students in the cohort to validate the student IDs
+        const cohortStudents = await prisma.user.findMany({
+            where: {
+                cohortId: validatedData.cohortId,
+                role: 'STUDENT',
+                status: 'ACTIVE'
+            },
+            select: { id: true, name: true }
+        });
+
+        const cohortStudentIds = new Set(cohortStudents.map(s => s.id));
+
+        // Get existing attendance records for this date and cohort
+        const existingAttendance = await prisma.attendance.findMany({
+            where: {
+                date: validatedData.date,
+                cohortId: validatedData.cohortId
+            },
+            select: { studentId: true, id: true, status: true }
+        });
+
+        const existingAttendanceMap = new Map(
+            existingAttendance.map(a => [a.studentId, a])
+        );
+
+        let created = 0;
+        let updated = 0;
+        let skipped = 0;
+        const errors: string[] = [];
+
+        // Process each attendance record in a transaction
+        await prisma.$transaction(async (tx) => {
+            for (const record of validatedData.attendanceRecords) {
+                try {
+                    // Validate that the student belongs to this cohort
+                    if (!cohortStudentIds.has(record.studentId)) {
+                        errors.push(`Student ${record.studentId} is not an active member of this cohort`);
+                        skipped++;
+                        continue;
+                    }
+
+                    const existingRecord = existingAttendanceMap.get(record.studentId);
+
+                    if (existingRecord) {
+                        // Update existing record if status has changed
+                        if (existingRecord.status !== record.status) {
+                            await tx.attendance.update({
+                                where: { id: existingRecord.id },
+                                data: { 
+                                    status: record.status,
+                                    updatedAt: new Date()
+                                }
+                            });
+                            updated++;
+                        } else {
+                            skipped++;
+                        }
+                    } else {
+                        // Create new record
+                        await tx.attendance.create({
+                            data: {
+                                date: validatedData.date,
+                                status: record.status,
+                                studentId: record.studentId,
+                                cohortId: validatedData.cohortId
+                            }
+                        });
+                        created++;
+                    }
+                } catch (recordError) {
+                    const errorMessage = recordError instanceof Error ? recordError.message : String(recordError);
+                    errors.push(`Failed to process attendance for student ${record.studentId}: ${errorMessage}`);
+                    skipped++;
+                }
+            }
+        });
+
+        const result: BulkAttendanceResult = {
+            created,
+            updated,
+            skipped,
+            errors
+        };
+
+        logger.logDatabaseOperation('bulk_update', 'attendance', `cohort-${cohort.id}`, {
+            metadata: { 
+                cohortId: validatedData.cohortId,
+                date: validatedData.date.toISOString(),
+                ...result
+            }
+        });
+
+        // Revalidate relevant paths
+        revalidatePath('/attendance');
+        revalidatePath(`/attendance/${cohort.slug}`);
+
+        const endTime = Date.now();
+        logger.logServerAction('bulk_update', 'attendance', {
+            metadata: {
+                cohortId: validatedData.cohortId,
+                duration: endTime - startTime,
+                ...result
+            }
+        });
+
+        return {
+            success: true,
+            data: result
+        };
+
+    } catch (error) {
+        const endTime = Date.now();
+        logger.error('Failed to bulk update attendance', error instanceof Error ? error : new Error(String(error)), {
+            metadata: {
+                cohortId: data.cohortId,
+                duration: endTime - startTime
+            }
+        });
+
+        if (error instanceof Prisma.PrismaClientKnownRequestError) {
+            return {
+                success: false,
+                error: handlePrismaError(error)
+            };
+        }
+
+        return {
+            success: false,
+            error: 'Failed to bulk update attendance records'
+        };
+    }
+}

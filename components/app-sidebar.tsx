@@ -10,6 +10,7 @@ import {
   Code2,
   Trophy,
   BookOpen,
+  ClipboardCheck,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -56,6 +57,34 @@ const buildNavigationData = (role?: string) => {
     );
   }
 
+  // Build secondary navigation items
+  const navSecondaryItems = [
+    {
+      title: "Learning",
+      url: "/lms",
+      icon: BookOpen,
+    },
+    {
+      title: "Documents",
+      url: "/docs",
+      icon: FileText,
+    },
+    {
+      title: "Quizzes",
+      url: "/learning/quiz",
+      icon: Pyramid,
+    },
+  ];
+
+  // Add Attendance menu item for MENTOR and ADMIN users only (after Quizzes)
+  if (role === "MENTOR" || role === "ADMIN") {
+    navSecondaryItems.push({
+      title: "Attendance",
+      url: "/attendance",
+      icon: ClipboardCheck,
+    });
+  }
+
   return {
     navTop: [
       {
@@ -85,23 +114,7 @@ const buildNavigationData = (role?: string) => {
       },
       ...mentorshipItems,
     ],
-    navSecondary: [
-      {
-        title: "Learning",
-        url: "/lms",
-        icon: BookOpen,
-      },
-      {
-        title: "Documents",
-        url: "/docs",
-        icon: FileText,
-      },
-      {
-        title: "Quizzes",
-        url: "/learning/quiz",
-        icon: Pyramid,
-      },
-    ],
+    navSecondary: navSecondaryItems,
     footer: [],
   };
 };
