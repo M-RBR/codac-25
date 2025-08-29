@@ -64,7 +64,8 @@ model User {
   status         UserStatus @default(ACTIVE)
   cohortId       String?
   cohort         Cohort?    @relation(fields: [cohortId], references: [id])
-  graduationDate DateTime?
+  startDate      DateTime? // Course start date (for STUDENT users)
+  endDate        DateTime? // Course end date (replaces graduationDate for STUDENT users)
   linkedinUrl    String?
   githubUrl      String?
   portfolioUrl   String?
@@ -114,6 +115,9 @@ model User {
   projectLikes      ProjectLike[]
   projectCollaborations ProjectCollaborator[]
 
+  // Attendance Relations (only for STUDENT users)
+  attendanceRecords Attendance[]
+
   @@map("users")
 }
 
@@ -131,6 +135,7 @@ model Cohort {
   id          String   @id @default(cuid())
   name        String
   startDate   DateTime
+  endDate     DateTime? // Course end date (optional for migration)
   description String?
   image       String?
   avatar      String? // Cohort avatar URL or base64 data
@@ -141,6 +146,7 @@ model Cohort {
 
   // Relations
   students User[]
+  attendanceRecords Attendance[]
 
   @@map("cohorts")
 }
@@ -985,4 +991,30 @@ enum ExperienceType {
   VOLUNTEER
   PROJECT
   INTERNSHIP
+}
+
+// Attendance Management
+model Attendance {
+  id     String           @id @default(cuid())
+  date   DateTime         @db.Date
+  status AttendanceStatus
+
+  // Relations
+  studentId String
+  student   User   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  cohortId  String
+  cohort    Cohort @relation(fields: [cohortId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([studentId, date]) // One attendance record per student per day
+  @@map("attendance")
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT_SICK
+  ABSENT_EXCUSED
+  ABSENT_UNEXCUSED
 }
