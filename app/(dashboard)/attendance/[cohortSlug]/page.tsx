@@ -1,4 +1,7 @@
-import { redirect } from 'next/navigation';
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { CalendarDays, Users, Clock, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { format, isWeekend, subDays, addDays } from 'date-fns';
@@ -8,20 +11,22 @@ import { Grid, PageContainer, PageHeader, Section } from '@/components/layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { auth } from '@/lib/auth/auth';
-import { UserRole } from '@prisma/client';
+import { useToast } from '@/hooks/use-toast';
+import { AttendanceStatus } from '@prisma/client';
 import { getCohortForAttendance } from '@/data/attendance/get-cohort-for-attendance';
 import { getCohortAttendanceForDate } from '@/data/attendance/get-cohort-attendance-for-date';
+import { bulkUpdateAttendance } from '@/actions/attendance/bulk-update-attendance';
+import { AttendanceStatusDropdown } from '@/components/attendance/attendance-status-dropdown';
 
 export const dynamic = 'force-dynamic';
 
 interface CohortAttendancePageProps {
-    params: {
+    params: Promise<{
         cohortSlug: string;
-    };
-    searchParams: {
+    }>;
+    searchParams: Promise<{
         date?: string;
-    };
+    }>;
 }
 
 // Helper function to get a valid weekday (skip weekends)
@@ -56,29 +61,176 @@ function getValidAttendanceDate(dateInput?: string): Date {
     return targetDate;
 }
 
-export default async function CohortAttendancePage({ params, searchParams }: CohortAttendancePageProps) {
-    const session = await auth();
+export default function CohortAttendancePage({ params, searchParams }: CohortAttendancePageProps) {
+    const router = useRouter();
+    const { toast } = useToast();
+    
+    // State for attendance management
+    const [attendanceData, setAttendanceData] = useState<{
+        cohort: { id: string; name: string };
+        totalStudents: number;
+        students: any[];
+        isEditable: boolean;
+    } | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [updatingStudent, setUpdatingStudent] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
+    const [attendanceDate, setAttendanceDate] = useState<Date>(new Date());
+    const [cohortSlug, setCohortSlug] = useState<string>('');
 
-    if (!session?.user?.id) {
-        redirect('/auth/signin');
+    // Load initial data
+    useEffect(() => {
+        const loadData = async () => {
+            try {
+                const resolvedParams = await params;
+                const resolvedSearchParams = await searchParams;
+                
+                setCohortSlug(resolvedParams.cohortSlug);
+                setAttendanceDate(getValidAttendanceDate(resolvedSearchParams.date));
+                
+                await loadAttendanceData(resolvedParams.cohortSlug, getValidAttendanceDate(resolvedSearchParams.date));
+            } catch (err) {
+                setError('Failed to load page parameters');
+                console.error('Error loading page parameters:', err);
+            }
+        };
+        
+        loadData();
+    }, [params, searchParams]);
+
+    const loadAttendanceData = async (slug: string, date: Date) => {
+        try {
+            setLoading(true);
+            setError(null);
+
+            // Fetch cohort data and attendance data in parallel
+            const [cohortResult, attendanceResult] = await Promise.all([
+                getCohortForAttendance(slug),
+                getCohortAttendanceForDate(slug, date),
+            ]);
+
+            // Handle cohort data errors
+            if (!cohortResult.success) {
+                setError(typeof cohortResult.error === 'string' ? cohortResult.error : 'Failed to load cohort data');
+                return;
+            }
+
+            // Handle attendance data errors
+            if (!attendanceResult.success) {
+                setError(typeof attendanceResult.error === 'string' ? attendanceResult.error : 'Failed to load attendance data');
+                return;
+            }
+
+            setAttendanceData({
+                cohort: cohortResult.data.cohort,
+                totalStudents: cohortResult.data.totalStudents,
+                students: attendanceResult.data.students,
+                isEditable: attendanceResult.data.isEditable,
+            });
+
+        } catch (err) {
+            setError('Failed to load attendance data');
+            console.error('Error loading attendance data:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleStatusChange = async (studentId: string, status: AttendanceStatus | null) => {
+        if (!attendanceData?.isEditable) {
+            toast({
+                title: "Read-only Mode",
+                description: "Cannot modify attendance for dates older than 30 days.",
+                variant: "destructive",
+            });
+            return;
+        }
+
+        try {
+            setUpdatingStudent(studentId);
+
+            // Prepare the attendance record for bulkUpdateAttendance
+            const result = await bulkUpdateAttendance({
+                date: attendanceDate,
+                cohortId: attendanceData.cohort.id,
+                attendanceRecords: [{
+                    studentId,
+                    status: status!
+                }]
+            });
+
+            if (result.success) {
+                // Update local state
+                setAttendanceData(prev => {
+                    if (!prev) return prev;
+                    
+                    return {
+                        ...prev,
+                        students: prev.students.map(student => 
+                            student.id === studentId 
+                                ? { 
+                                    ...student, 
+                                    attendance: status 
+                                            ? { id: 'temp', status } 
+                                            : null 
+                                  }
+                                : student
+                        )
+                    };
+                });
+
+                toast({
+                    title: "Attendance Updated",
+                    description: `Successfully recorded ${status === 'PRESENT' ? 'present' : 'absence'} for student.`,
+                    variant: "default",
+                });
+
+                // Refresh the page to get updated data
+                router.refresh();
+
+            } else {
+                toast({
+                    title: "Update Failed",
+                    description: typeof result.error === 'string' ? result.error : 'Failed to update attendance',
+                    variant: "destructive",
+                });
+            }
+
+        } catch (err) {
+            console.error('Error updating attendance:', err);
+            toast({
+                title: "Update Failed",
+                description: "An unexpected error occurred while updating attendance.",
+                variant: "destructive",
+            });
+        } finally {
+            setUpdatingStudent(null);
+        }
+    };
+
+    const handleDateChange = (newDate: Date) => {
+        setAttendanceDate(newDate);
+        // Update URL without page refresh
+        const formattedDate = format(newDate, 'yyyy-MM-dd');
+        router.push(`/attendance/${cohortSlug}?date=${formattedDate}`);
+    };
+
+    // Show loading state
+    if (loading) {
+        return (
+            <PageContainer>
+                <div className="flex items-center justify-center min-h-[400px]">
+                    <div className="text-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+                        <p className="text-muted-foreground">Loading attendance data...</p>
+                    </div>
+                </div>
+            </PageContainer>
+        );
     }
 
-    // Check if user has the right role
-    if (session.user.role !== UserRole.MENTOR && session.user.role !== UserRole.ADMIN) {
-        redirect('/attendance');
-    }
-
-    // Get valid attendance date
-    const attendanceDate = getValidAttendanceDate(searchParams.date);
-
-    // Fetch cohort data and attendance data in parallel
-    const [cohortResult, attendanceResult] = await Promise.all([
-        getCohortForAttendance(params.cohortSlug),
-        getCohortAttendanceForDate(params.cohortSlug, attendanceDate),
-    ]);
-
-    // Handle cohort data errors
-    if (!cohortResult.success) {
+    // Show error state
+    if (error || !attendanceData) {
         return (
             <PageErrorBoundary pageName="Cohort Attendance">
                 <PageContainer>
@@ -91,38 +243,15 @@ export default async function CohortAttendancePage({ params, searchParams }: Coh
                         </Link>
                     </div>
                     <PageHeader
-                        title="Cohort Not Found"
-                        description={typeof cohortResult.error === 'string' ? cohortResult.error : 'Failed to load cohort data'}
+                        title="Error Loading Attendance"
+                        description={error || 'Failed to load attendance data'}
                     />
                 </PageContainer>
             </PageErrorBoundary>
         );
     }
 
-    // Handle attendance data errors
-    if (!attendanceResult.success) {
-        return (
-            <PageErrorBoundary pageName="Cohort Attendance">
-                <PageContainer>
-                    <div className="mb-6">
-                        <Link href="/attendance">
-                            <Button variant="ghost" size="sm" className="mb-4">
-                                <ArrowLeft className="h-4 w-4 mr-2" />
-                                Back to Attendance
-                            </Button>
-                        </Link>
-                    </div>
-                    <PageHeader
-                        title={cohortResult.data?.cohort.name || 'Cohort Attendance'}
-                        description={typeof attendanceResult.error === 'string' ? attendanceResult.error : 'Failed to load attendance data'}
-                    />
-                </PageContainer>
-            </PageErrorBoundary>
-        );
-    }
-
-    const { cohort, totalStudents, totalWorkingDays } = cohortResult.data;
-    const { students, isEditable } = attendanceResult.data;
+    const { cohort, totalStudents, students, isEditable } = attendanceData;
 
     // Calculate statistics for the current date
     const presentCount = students.filter(s => s.attendance?.status === 'PRESENT').length;
@@ -162,10 +291,9 @@ export default async function CohortAttendancePage({ params, searchParams }: Coh
                 </div>
 
                 {/* Page Header */}
-                
                 <PageHeader
-                 title={`${cohort.name} - Attendance`}
-                description={`Manage daily attendance for ${totalStudents} students • ${totalWorkingDays} total course days`}
+                    title={`${cohort.name} - Attendance`}
+                    description={`Manage daily attendance for ${totalStudents} students`}
                 />
 
                 {/* Date Selection and Statistics */}
@@ -181,7 +309,7 @@ export default async function CohortAttendancePage({ params, searchParams }: Coh
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="text-center"><div className="text-center">
+                                    <div className="text-center">
                                         <div className="text-2xl font-bold">
                                             {format(attendanceDate, 'EEEE')}
                                         </div>
@@ -197,24 +325,23 @@ export default async function CohortAttendancePage({ params, searchParams }: Coh
                                         )}
                                     </div>
                                     
-                                    </div>
                                     <div className="flex items-center justify-between mb-4">
-                                        <Link 
-                                            href={`/attendance/${params.cohortSlug}?date=${format(previousWeekday, 'yyyy-MM-dd')}`}
+                                        <Button 
+                                            variant="outline" 
+                                            size="sm"
+                                            onClick={() => handleDateChange(previousWeekday)}
                                         >
-                                            <Button variant="outline" size="sm">
-                                                ← Previous Day
-                                            </Button>
-                                        </Link>
+                                            ← Previous Day
+                                        </Button>
 
                                         {nextWeekday && (
-                                            <Link 
-                                                href={`/attendance/${params.cohortSlug}?date=${format(nextWeekday, 'yyyy-MM-dd')}`}
+                                            <Button 
+                                                variant="outline" 
+                                                size="sm"
+                                                onClick={() => handleDateChange(nextWeekday)}
                                             >
-                                                <Button variant="outline" size="sm">
-                                                    Next Day →
-                                                </Button>
-                                            </Link>
+                                                Next Day →
+                                            </Button>
                                         )}
                                     </div>
                                 </CardContent>
@@ -309,35 +436,15 @@ export default async function CohortAttendancePage({ params, searchParams }: Coh
                                                 </div>
 
                                                 <div className="flex items-center space-x-2">
-                                                    {student.attendance ? (
-                                                        <Badge 
-                                                            variant={student.attendance.status === 'PRESENT' ? 'default' : 'secondary'}
-                                                            className={
-                                                                student.attendance.status === 'PRESENT' 
-                                                                    ? 'bg-green-100 text-green-800 border-green-200' 
-                                                                    : student.attendance.status === 'ABSENT_SICK'
-                                                                    ? 'bg-blue-100 text-blue-800 border-blue-200'
-                                                                    : student.attendance.status === 'ABSENT_EXCUSED'
-                                                                    ? 'bg-yellow-100 text-yellow-800 border-yellow-200'
-                                                                    : 'bg-red-100 text-red-800 border-red-200'
-                                                            }
-                                                        >
-                                                            {student.attendance.status === 'PRESENT' && 'Present (Y)'}
-                                                            {student.attendance.status === 'ABSENT_SICK' && 'Sick (K)'}
-                                                            {student.attendance.status === 'ABSENT_EXCUSED' && 'Excused (E)'}
-                                                            {student.attendance.status === 'ABSENT_UNEXCUSED' && 'Unexcused (UE)'}
-                                                        </Badge>
-                                                    ) : (
-                                                        <Badge variant="outline" className="bg-gray-50 text-gray-600">
-                                                            Not Recorded
-                                                        </Badge>
-                                                    )}
-
-                                                    {isEditable && (
-                                                        <Button variant="outline" size="sm">
-                                                            {student.attendance ? 'Edit' : 'Record'}
-                                                        </Button>
-                                                    )}
+                                                    <AttendanceStatusDropdown
+                                                        studentId={student.id}
+                                                        cohortId={cohort.id}
+                                                        currentStatus={student.attendance?.status || null}
+                                                        date={attendanceDate}
+                                                        isEditable={isEditable}
+                                                        onStatusChange={handleStatusChange}
+                                                        isUpdating={updatingStudent === student.id}
+                                                    />
                                                 </div>
                                             </div>
                                         ))}
