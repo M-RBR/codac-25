@@ -17,6 +17,10 @@ import { getCohortForAttendance } from '@/data/attendance/get-cohort-for-attenda
 import { getCohortAttendanceForDate } from '@/data/attendance/get-cohort-attendance-for-date';
 import { bulkUpdateAttendance } from '@/actions/attendance/bulk-update-attendance';
 import { AttendanceStatusDropdown } from '@/components/attendance/attendance-status-dropdown';
+import { AttendancePieChart } from '@/components/attendance/attendance-pie-chart';
+import { AttendanceStatistics } from '@/components/attendance/attendance-statistics';
+import { StudentAttendanceProgress } from '@/components/attendance/student-attendance-progress';
+import { getStudentAttendanceSummary } from '@/data/attendance/get-student-attendance-summary';
 
 export const dynamic = 'force-dynamic';
 
@@ -72,7 +76,13 @@ export default function CohortAttendancePage({ params, searchParams }: CohortAtt
         students: any[];
         isEditable: boolean;
     } | null>(null);
+    const [studentProgressData, setStudentProgressData] = useState<{
+        students: any[];
+        totalWorkingDays: number;
+        cohortInfo: any;
+    } | null>(null);
     const [loading, setLoading] = useState(true);
+    const [progressLoading, setProgressLoading] = useState(true);
     const [updatingStudent, setUpdatingStudent] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [attendanceDate, setAttendanceDate] = useState<Date>(new Date());
@@ -89,6 +99,12 @@ export default function CohortAttendancePage({ params, searchParams }: CohortAtt
                 setAttendanceDate(getValidAttendanceDate(resolvedSearchParams.date));
                 
                 await loadAttendanceData(resolvedParams.cohortSlug, getValidAttendanceDate(resolvedSearchParams.date));
+                
+                // Load student progress data after we have the cohort data
+                const cohortResult = await getCohortForAttendance(resolvedParams.cohortSlug);
+                if (cohortResult.success) {
+                    await loadStudentProgressData(cohortResult.data.cohort.id);
+                }
             } catch (err) {
                 setError('Failed to load page parameters');
                 console.error('Error loading page parameters:', err);
@@ -133,6 +149,23 @@ export default function CohortAttendancePage({ params, searchParams }: CohortAtt
             console.error('Error loading attendance data:', err);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const loadStudentProgressData = async (cohortId: string) => {
+        try {
+            setProgressLoading(true);
+            const result = await getStudentAttendanceSummary({ cohortId });
+            
+            if (result.success) {
+                setStudentProgressData(result.data);
+            } else {
+                console.error('Failed to load student progress data:', result.error);
+            }
+        } catch (err) {
+            console.error('Error loading student progress data:', err);
+        } finally {
+            setProgressLoading(false);
         }
     };
 
@@ -255,7 +288,10 @@ export default function CohortAttendancePage({ params, searchParams }: CohortAtt
 
     // Calculate statistics for the current date
     const presentCount = students.filter(s => s.attendance?.status === 'PRESENT').length;
-    const absentCount = students.filter(s => s.attendance && s.attendance.status !== 'PRESENT').length;
+    const absentSickCount = students.filter(s => s.attendance?.status === 'ABSENT_SICK').length;
+    const absentExcusedCount = students.filter(s => s.attendance?.status === 'ABSENT_EXCUSED').length;
+    const absentUnexcusedCount = students.filter(s => s.attendance?.status === 'ABSENT_UNEXCUSED').length;
+    const absentCount = absentSickCount + absentExcusedCount + absentUnexcusedCount;
     const unrecordedCount = students.filter(s => !s.attendance).length;
 
     // Generate date navigation helpers
@@ -463,22 +499,59 @@ export default function CohortAttendancePage({ params, searchParams }: CohortAtt
                     </SectionErrorBoundary>
                 </Section>
 
-                {/* Placeholder for future visualization components */}
+                {/* Attendance Visualization */}
                 <Section>
                     <SectionErrorBoundary sectionName="attendance visualization">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Attendance Overview</CardTitle>
-                                <p className="text-sm text-muted-foreground">
-                                    Visualization components will be added in the next task
-                                </p>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-center py-8 text-muted-foreground">
-                                    📊 Pie chart and progress bars coming soon...
-                                </div>
-                            </CardContent>
-                        </Card>
+                        <Grid cols="2" gap="lg">
+                            <AttendanceStatistics 
+                                data={{
+                                    present: presentCount,
+                                    absentSick: absentSickCount,
+                                    absentExcused: absentExcusedCount,
+                                    absentUnexcused: absentUnexcusedCount,
+                                    unrecorded: unrecordedCount
+                                }}
+                                totalStudents={totalStudents}
+                                date={attendanceDate}
+                            />
+                            
+                            <AttendancePieChart 
+                                data={{
+                                    present: presentCount,
+                                    absentSick: absentSickCount,
+                                    absentExcused: absentExcusedCount,
+                                    absentUnexcused: absentUnexcusedCount,
+                                    unrecorded: unrecordedCount
+                                }}
+                                totalStudents={totalStudents}
+                                date={attendanceDate}
+                            />
+                        </Grid>
+                    </SectionErrorBoundary>
+                </Section>
+
+                {/* Individual Student Progress */}
+                <Section>
+                    <SectionErrorBoundary sectionName="student progress">
+                        {progressLoading ? (
+                            <Card>
+                                <CardContent className="flex items-center justify-center py-8">
+                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                                    <span className="ml-2">Loading student progress...</span>
+                                </CardContent>
+                            </Card>
+                        ) : studentProgressData ? (
+                            <StudentAttendanceProgress
+                                students={studentProgressData.students}
+                                totalWorkingDays={studentProgressData.totalWorkingDays}
+                            />
+                        ) : (
+                            <Card>
+                                <CardContent className="text-center py-8 text-muted-foreground">
+                                    <p>Unable to load student progress data</p>
+                                </CardContent>
+                            </Card>
+                        )}
                     </SectionErrorBoundary>
                 </Section>
             </PageContainer>

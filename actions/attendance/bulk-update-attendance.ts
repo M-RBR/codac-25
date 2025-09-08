@@ -5,7 +5,7 @@ import { Prisma } from '@prisma/client';
 
 import { prisma } from '@/lib/db';
 import { logger } from '@/lib/logger';
-import { auth } from '@/lib/auth/auth';
+import { withAttendanceEditAuth } from '@/lib/auth/attendance-middleware';
 import { 
     bulkUpdateAttendanceSchema, 
     type BulkUpdateAttendanceInput,
@@ -27,7 +27,8 @@ type BulkAttendanceResult = {
 
 type BulkUpdateAttendanceResult = ServerActionResult<BulkAttendanceResult>;
 
-export async function bulkUpdateAttendance(data: BulkUpdateAttendanceInput): Promise<BulkUpdateAttendanceResult> {
+// Internal implementation without auth (auth handled by middleware)
+async function bulkUpdateAttendanceInternal(data: BulkUpdateAttendanceInput): Promise<BulkUpdateAttendanceResult> {
     const startTime = Date.now();
 
     try {
@@ -38,28 +39,6 @@ export async function bulkUpdateAttendance(data: BulkUpdateAttendanceInput): Pro
                 recordCount: data.attendanceRecords.length
             }
         });
-
-        // Get authenticated user and check permissions
-        const session = await auth();
-        if (!session?.user?.id) {
-            return {
-                success: false,
-                error: 'Authentication required'
-            };
-        }
-
-        // Check if user has MENTOR or ADMIN role
-        const user = await prisma.user.findUnique({
-            where: { id: session.user.id },
-            select: { role: true }
-        });
-
-        if (!user || (user.role !== 'MENTOR' && user.role !== 'ADMIN')) {
-            return {
-                success: false,
-                error: 'Insufficient permissions. Only mentors and admins can manage attendance.'
-            };
-        }
 
         // Validate input data
         const validatedData = bulkUpdateAttendanceSchema.parse(data);
@@ -212,3 +191,14 @@ export async function bulkUpdateAttendance(data: BulkUpdateAttendanceInput): Pro
         };
     }
 }
+
+// Export the secured version wrapped with middleware
+export const bulkUpdateAttendance = withAttendanceEditAuth(
+    bulkUpdateAttendanceInternal,
+    {
+        extractCohortId: (data: BulkUpdateAttendanceInput) => data.cohortId,
+        extractDate: (data: BulkUpdateAttendanceInput) => data.date,
+        logResource: 'bulk_update',
+        getResourceId: (data: BulkUpdateAttendanceInput) => `${data.cohortId}-${data.date.toISOString().split('T')[0]}`
+    }
+);
