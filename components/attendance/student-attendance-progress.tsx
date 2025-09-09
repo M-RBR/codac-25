@@ -86,7 +86,7 @@ export function StudentAttendanceProgress({
                     </Badge>
                 </CardTitle>
                 <p className="text-sm text-muted-foreground">
-                    Showing attendance progress based on {totalWorkingDays} total working days
+                    Showing attendance progress based on {totalWorkingDays} total course days
                 </p>
             </CardHeader>
             <CardContent>

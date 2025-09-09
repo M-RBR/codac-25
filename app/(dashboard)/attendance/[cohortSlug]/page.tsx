@@ -271,7 +271,7 @@ export default function CohortAttendancePage({ params, searchParams }: CohortAtt
                         <Link href="/attendance">
                             <Button variant="ghost" size="sm" className="mb-4">
                                 <ArrowLeft className="h-4 w-4 mr-2" />
-                                Back to Attendance
+                                Back to Main Attendance Page
                             </Button>
                         </Link>
                     </div>
@@ -321,7 +321,7 @@ export default function CohortAttendancePage({ params, searchParams }: CohortAtt
                     <Link href="/attendance">
                         <Button variant="ghost" size="sm" className="mb-4">
                             <ArrowLeft className="h-4 w-4 mr-2" />
-                            Back to Attendance
+                            Back to Main Attendance Page
                         </Button>
                     </Link>
                 </div>
@@ -339,7 +339,7 @@ export default function CohortAttendancePage({ params, searchParams }: CohortAtt
                             {/* Date Navigation */}
                             <Card className="lg:w-1/3">
                                 <CardHeader>
-                                    <CardTitle className="flex items-center text-lg">
+                                    <CardTitle className="flex items-center justify-center text-lg">
                                         <CalendarDays className="h-5 w-5 mr-2" />
                                         Attendance Date:
                                     </CardTitle>
@@ -361,7 +361,7 @@ export default function CohortAttendancePage({ params, searchParams }: CohortAtt
                                         )}
                                     </div>
                                     
-                                    <div className="flex items-center justify-between mb-4">
+                                    <div className="flex items-center justify-between p-5">
                                         <Button 
                                             variant="outline" 
                                             size="sm"
