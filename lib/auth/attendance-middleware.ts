@@ -1,4 +1,5 @@
-import { AttendancePermission, getAttendanceAuthContext, verifyAttendanceViewAccess, verifyAttendanceEditAccess, logAttendanceOperation } from './attendance-auth';
+import { type AttendancePermission } from './attendance-permissions';
+import { getAttendanceAuthContext, verifyAttendanceViewAccess, verifyAttendanceEditAccess, logAttendanceOperation } from './attendance-auth';
 import type { ServerActionResult } from '@/lib/server-action-utils';
 
 /**
