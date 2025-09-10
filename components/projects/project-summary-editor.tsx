@@ -4,7 +4,7 @@ import { FileText, Code, Palette, Search } from 'lucide-react'
 import { type Value } from 'platejs'
 import React, { useState } from 'react'
 
-import { UnifiedEditor } from '@/components/editor/unified-editor'
+import { SimplifiedUnifiedEditor } from '@/components/editor/simplified-unified-editor'
 import { Button } from '@/components/ui/button'
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
@@ -122,13 +122,14 @@ export function ProjectSummaryEditor({
       )}
 
       <div className="min-h-[400px] border rounded-lg">
-        <UnifiedEditor
+        <SimplifiedUnifiedEditor
           initialValue={content}
           contentId={projectId}
           contentType="project"
           showStatusBar={showStatusBar}
           canEdit={canEdit}
           readOnly={readOnly}
+          editorClassName="max-w-full px-4 sm:px-6 pt-4 pb-16 text-base overflow-x-hidden"
         />
       </div>
     </div>

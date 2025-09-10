@@ -42,8 +42,7 @@ import {
   BlockSuggestionCard,
   isResolvedSuggestion,
   useResolveSuggestion,
-} from '../editor/plugins/block-suggestion';
-
+} from './block-suggestion';
 import { Comment, CommentCreateForm } from './comment';
 
 export const BlockDiscussion: RenderNodeWrapper<AnyPluginConfig> = (props) => {
@@ -71,7 +70,7 @@ export const BlockDiscussion: RenderNodeWrapper<AnyPluginConfig> = (props) => {
     return;
   }
 
-  const BlockDiscussionWrapper = (props: PlateElementProps) => (
+  const Component = (props: PlateElementProps) => (
     <BlockCommentContent
       blockPath={blockPath}
       commentNodes={commentNodes}
@@ -80,8 +79,8 @@ export const BlockDiscussion: RenderNodeWrapper<AnyPluginConfig> = (props) => {
       {...props}
     />
   );
-  BlockDiscussionWrapper.displayName = 'BlockDiscussionWrapper';
-  return BlockDiscussionWrapper;
+  Component.displayName = 'BlockDiscussionComponent';
+  return Component;
 };
 
 const BlockCommentContent = ({
@@ -97,7 +96,6 @@ const BlockCommentContent = ({
   suggestionNodes: NodeEntry<TElement | TSuggestionText>[];
 }) => {
   const editor = useEditorRef();
-
   const resolvedSuggestions = useResolveSuggestion(suggestionNodes, blockPath);
   const resolvedDiscussions = useResolvedDiscussion(commentNodes, blockPath);
 
@@ -342,7 +340,7 @@ const useResolvedDiscussion = (
 
       return;
     }
-    // Initialize new path mapping for comment ID
+    // TODO: fix throw error
     setOption('uniquePathMap', new Map(map).set(id, blockPath));
   });
 

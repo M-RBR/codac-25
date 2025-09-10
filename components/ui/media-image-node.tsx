@@ -31,8 +31,8 @@ export const ImageElement = withHOC(
     });
 
     return (
-      <PlateElement {...props} className="py-2.5">
-        <MediaToolbar plugin={ImagePlugin}>
+      <MediaToolbar plugin={ImagePlugin}>
+        <PlateElement {...props} className="py-2.5">
           <figure className="group relative m-0" contentEditable={false}>
             <Resizable
               align={align}
@@ -53,7 +53,7 @@ export const ImageElement = withHOC(
                   focused && selected && 'ring-2 ring-ring ring-offset-2',
                   isDragging && 'opacity-50'
                 )}
-                alt={props.element.alt as string | undefined}
+                alt={(props.attributes as any).alt as string | undefined}
               />
               <ResizeHandle
                 className={mediaResizeHandleVariants({
@@ -73,10 +73,10 @@ export const ImageElement = withHOC(
               />
             </Caption>
           </figure>
-        </MediaToolbar>
 
-        {props.children}
-      </PlateElement>
+          {props.children}
+        </PlateElement>
+      </MediaToolbar>
     );
   }
 );

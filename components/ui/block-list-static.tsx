@@ -1,5 +1,3 @@
-
-
 import { isOrderedList } from '@platejs/list';
 import { CheckIcon } from 'lucide-react';
 import type {
@@ -27,9 +25,9 @@ const config: Record<
 export const BlockListStatic: RenderStaticNodeWrapper = (props) => {
   if (!props.element.listStyleType) return;
 
-  const BlockListWrapper = (props: SlateRenderElementProps) => <List {...props} />;
-  BlockListWrapper.displayName = 'BlockListWrapper';
-  return BlockListWrapper;
+  const Component = (props: SlateRenderElementProps) => <List {...props} />;
+  Component.displayName = 'BlockListComponent';
+  return Component;
 };
 
 function List(props: SlateRenderElementProps) {

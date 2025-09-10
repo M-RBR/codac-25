@@ -1,6 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { PrismaClient, CourseCategory, LessonType } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
+import type { CourseCategory, LessonType } from '@prisma/client';
 import { MarkdownPlugin } from '@platejs/markdown';
 import matter from 'gray-matter';
 import { createPlateEditor } from 'platejs/react';

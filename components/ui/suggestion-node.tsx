@@ -10,7 +10,7 @@ import * as React from 'react';
 import {
   type SuggestionConfig,
   suggestionPlugin,
-} from '@/components/editor/plugins/suggestion-kit';
+} from '@/components/suggestion-kit';
 import { cn } from '@/lib/utils';
 
 export function SuggestionLeaf(props: PlateLeafProps<TSuggestionText>) {

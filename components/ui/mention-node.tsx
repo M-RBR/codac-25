@@ -31,6 +31,7 @@ export function MentionElement(
   }
 ) {
   const element = props.element;
+
   const selected = useSelected();
   const focused = useFocused();
   const mounted = useMounted();
@@ -82,7 +83,7 @@ export function MentionInputElement(
   const [search, setSearch] = React.useState('');
 
   return (
-    <PlateElement {...props} as="span" data-slate-value={element.value}>
+    <PlateElement {...props} as="span">
       <InlineCombobox
         value={search}
         element={element}
