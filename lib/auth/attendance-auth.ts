@@ -182,12 +182,20 @@ export async function verifyAttendanceViewAccess(cohortId?: string): Promise<{
 /**
  * Verify that the current user can edit attendance data
  */
-export async function verifyAttendanceEditAccess(cohortId: string, targetDate: Date): Promise<{
+export async function verifyAttendanceEditAccess(cohortId: string, targetDate: Date | string): Promise<{
     success: boolean;
     error?: string;
     authContext?: AttendanceAuthContext;
     isEditable?: boolean;
 }> {
+    // Normalize targetDate to Date object for consistent handling
+    const normalizedDate = typeof targetDate === 'string' 
+        ? (() => {
+            const [year, month, day] = targetDate.split('-').map(Number);
+            return new Date(year, month - 1, day);
+          })()
+        : targetDate;
+
     const authContext = await getAttendanceAuthContext();
     
     if (!authContext) {
@@ -206,7 +214,7 @@ export async function verifyAttendanceEditAccess(cohortId: string, targetDate: D
                 userId: authContext.userId,
                 userRole: authContext.userRole,
                 cohortId,
-                date: targetDate.toISOString()
+                date: normalizedDate.toISOString()
             }
         });
         
@@ -225,7 +233,7 @@ export async function verifyAttendanceEditAccess(cohortId: string, targetDate: D
     }
 
     // Check if the date is within the editable window (30 days)
-    const daysDifference = Math.floor((Date.now() - targetDate.getTime()) / (1000 * 60 * 60 * 24));
+    const daysDifference = Math.floor((Date.now() - normalizedDate.getTime()) / (1000 * 60 * 60 * 24));
     const isEditable = daysDifference <= 30;
 
     if (!isEditable && authContext.userRole !== UserRole.ADMIN) {
@@ -236,7 +244,7 @@ export async function verifyAttendanceEditAccess(cohortId: string, targetDate: D
                 userId: authContext.userId,
                 userRole: authContext.userRole,
                 cohortId,
-                date: targetDate.toISOString(),
+                date: normalizedDate.toISOString(),
                 daysPast: daysDifference
             }
         });

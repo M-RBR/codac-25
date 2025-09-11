@@ -35,7 +35,13 @@ export const updateAttendanceSchema = z.object({
 
 // Bulk update attendance schema for updating multiple students at once
 export const bulkUpdateAttendanceSchema = z.object({
-  date: z.date(),
+  date: z.string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format')
+    .transform((dateStr) => {
+      // Convert string to Date object at start of day in local timezone
+      const [year, month, day] = dateStr.split('-').map(Number);
+      return new Date(year, month - 1, day); // month is 0-indexed
+    }),
   cohortId: z.string().cuid('Invalid cohort ID'),
   attendanceRecords: z.array(z.object({
     studentId: z.string().cuid('Invalid student ID'),

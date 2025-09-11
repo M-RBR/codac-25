@@ -133,7 +133,7 @@ export function withAttendanceEditAuth<T extends any[], R>(
     serverAction: (...args: T) => Promise<ServerActionResult<R>>,
     options: {
         extractCohortId: (...args: T) => string;
-        extractDate: (...args: T) => Date;
+        extractDate: (...args: T) => Date | string;
         logResource?: string;
         getResourceId?: (...args: T) => string;
     }
@@ -154,9 +154,17 @@ export function withAttendanceEditAuth<T extends any[], R>(
 
         // Log the edit operation
         if (options?.logResource && editAccess.authContext) {
+            // Normalize date for logging
+            const normalizedDate = typeof date === 'string' 
+                ? (() => {
+                    const [year, month, day] = date.split('-').map(Number);
+                    return new Date(year, month - 1, day);
+                  })()
+                : date;
+
             const resourceId = options.getResourceId 
                 ? options.getResourceId(...args)
-                : `${cohortId}-${date.toISOString().split('T')[0]}`;
+                : `${cohortId}-${normalizedDate.toISOString().split('T')[0]}`;
                 
             await logAttendanceOperation(
                 'update',
@@ -165,7 +173,7 @@ export function withAttendanceEditAuth<T extends any[], R>(
                 { 
                     userId: editAccess.authContext.userId,
                     cohortId,
-                    date: date.toISOString()
+                    date: normalizedDate.toISOString()
                 }
             );
         }

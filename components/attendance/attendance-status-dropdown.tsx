@@ -72,6 +72,7 @@ interface AttendanceStatusDropdownProps {
     isEditable: boolean;
     onStatusChange: (studentId: string, status: AttendanceStatus | null) => void;
     isUpdating?: boolean;
+    isPending?: boolean;
     className?: string;
 }
 
@@ -81,6 +82,7 @@ export function AttendanceStatusDropdown({
     isEditable,
     onStatusChange,
     isUpdating = false,
+    isPending = false,
     className,
 }: AttendanceStatusDropdownProps) {
     const [selectedStatus, setSelectedStatus] = useState<AttendanceStatus | null>(currentStatus);
@@ -142,7 +144,8 @@ export function AttendanceStatusDropdown({
                             'w-48',
                             currentOption && 'border-2',
                             currentOption?.borderColor,
-                            isUpdating && 'opacity-50 cursor-not-allowed'
+                            isUpdating && 'opacity-50 cursor-not-allowed',
+                            isPending && 'border-amber-400 bg-amber-50'
                         )}
                     >
                         <SelectValue placeholder="Select status">
@@ -211,6 +214,13 @@ export function AttendanceStatusDropdown({
 
                 {isUpdating && (
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                )}
+                
+                {isPending && !isUpdating && (
+                    <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-300">
+                        <Clock className="h-3 w-3 mr-1" />
+                        Pending
+                    </Badge>
                 )}
             </div>
         </TooltipProvider>

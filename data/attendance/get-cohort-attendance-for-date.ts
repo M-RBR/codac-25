@@ -1,6 +1,7 @@
 'use server';
 
 import { UserRole, AttendanceStatus } from '@prisma/client';
+import { startOfDay, subDays, isAfter, isBefore, isSameDay } from 'date-fns';
 
 import { prisma } from '@/lib/db';
 import { logger } from '@/lib/logger';
@@ -27,15 +28,24 @@ export type GetCohortAttendanceForDateResult = ServerActionResult<{
 
 export async function getCohortAttendanceForDate(
     cohortSlug: string, 
-    date: Date
+    date: Date | string
 ): Promise<GetCohortAttendanceForDateResult> {
     const startTime = Date.now();
 
+    // Normalize date input to Date object (move to function scope for error handling)
+    const normalizedDate = typeof date === 'string' 
+        ? (() => {
+            const [year, month, day] = date.split('-').map(Number);
+            return new Date(year, month -1, day);
+          })()
+        : date;
+
     try {
+
         logger.info('Fetching cohort attendance for specific date', {
             action: 'get',
             resource: 'cohort_attendance_date',
-            metadata: { cohortSlug, date: date.toISOString() },
+            metadata: { cohortSlug, date: normalizedDate.toISOString() },
         });
 
         const session = await auth();
@@ -73,7 +83,7 @@ export async function getCohortAttendanceForDate(
                 avatar: true,
                 attendanceRecords: {
                     where: {
-                        date: date,
+                        date: normalizedDate,
                         cohortId: cohort.id,
                     },
                     select: {
@@ -91,7 +101,7 @@ export async function getCohortAttendanceForDate(
         logger.logDatabaseOperation('findMany', 'users', undefined, {
             metadata: { 
                 cohortId: cohort.id, 
-                date: date.toISOString(), 
+                date: normalizedDate.toISOString(), 
                 studentsCount: students.length, 
                 purpose: 'attendance_by_date' 
             }
@@ -107,13 +117,17 @@ export async function getCohortAttendanceForDate(
         }));
 
         // Check if the date is within the 30-day editable window
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(today.getDate() - 30);
-        thirtyDaysAgo.setHours(0, 0, 0, 0);
+        // Use date-fns for reliable, timezone-safe date operations
+        const todayStart = startOfDay(new Date());
+        const thirtyDaysAgoStart = startOfDay(subDays(new Date(), 30));
+        const inputDateStart = startOfDay(normalizedDate);
 
-        const isEditable = date >= thirtyDaysAgo && date <= today;
+        // Date is editable if it's:
+        // 1. Today or in the past (not future)
+        // 2. Within the last 30 days (not too old)
+        const isEditable = 
+            (isSameDay(inputDateStart, todayStart) || isBefore(inputDateStart, todayStart)) &&
+            (isSameDay(inputDateStart, thirtyDaysAgoStart) || isAfter(inputDateStart, thirtyDaysAgoStart));
 
         logger.info('Cohort attendance for date retrieved successfully', {
             metadata: {
@@ -131,7 +145,7 @@ export async function getCohortAttendanceForDate(
             success: true,
             data: {
                 students: studentsWithAttendance,
-                date,
+                date: normalizedDate,
                 cohortId: cohort.id,
                 isEditable,
             },
@@ -144,7 +158,7 @@ export async function getCohortAttendanceForDate(
                 resource: 'cohort_attendance_date',
                 duration: Date.now() - startTime,
                 cohortSlug,
-                date: date.toISOString(),
+                date: normalizedDate.toISOString(),
             }
         });
         return { success: false, error: 'Failed to load attendance data for the selected date.' };

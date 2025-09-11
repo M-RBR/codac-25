@@ -2,15 +2,17 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { CalendarDays, Users, Clock, ArrowLeft } from 'lucide-react';
+import { CalendarDays, Users, Clock, ArrowLeft, CalendarIcon } from 'lucide-react';
 import Link from 'next/link';
-import { format, isWeekend, subDays, addDays } from 'date-fns';
+import { format, isWeekend, subDays, addDays, startOfDay, isAfter } from 'date-fns';
 
 import { PageErrorBoundary, SectionErrorBoundary } from '@/components/error';
 import { Grid, PageContainer, PageHeader, Section } from '@/components/layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useToast } from '@/hooks/use-toast';
 import { AttendanceStatus } from '@prisma/client';
 import { getCohortForAttendance } from '@/data/attendance/get-cohort-for-attendance';
@@ -38,32 +40,59 @@ function getValidAttendanceDate(dateInput?: string): Date {
     let targetDate: Date;
     
     if (dateInput) {
-        targetDate = new Date(dateInput);
+        // ✅ FIX: Use local timezone consistently (same as validation schema)
+        const [year, month, day] = dateInput.split('-').map(Number);
+        targetDate = new Date(year, month - 1, day); // month is 0-indexed, creates local date
+        
         // Validate the date
         if (isNaN(targetDate.getTime())) {
-            targetDate = new Date();
+            targetDate = new Date(); // Fallback to a new local date if invalid
         }
     } else {
         targetDate = new Date();
     }
     
+    // Always normalize to start of day FIRST using date-fns
+    // Now operating on local timezone date (consistent with validation)
+    targetDate = startOfDay(targetDate);
+    
     // If it's a weekend, go back to the previous Friday
     while (isWeekend(targetDate)) {
-        targetDate = subDays(targetDate, 1);
+        targetDate = startOfDay(subDays(targetDate, 1));
     }
     
-    // Ensure it's not in the future
-    const today = new Date();
-    if (targetDate > today) {
-        targetDate = today;
+    // Ensure it's not in the future (comparing calendar days using date-fns)
+    const todayStart = startOfDay(new Date());
+    
+    if (isAfter(targetDate, todayStart)) {
+        targetDate = todayStart;
         // If today is a weekend, go back to the previous Friday
         while (isWeekend(targetDate)) {
-            targetDate = subDays(targetDate, 1);
+            targetDate = startOfDay(subDays(targetDate, 1));
         }
     }
     
     return targetDate;
 }
+
+// Helper function to determine if a date should be disabled in the calendar
+function isDateDisabled(date: Date): boolean {
+    const today = startOfDay(new Date());
+    
+    // Disable weekends
+    if (isWeekend(date)) {
+        return true;
+    }
+    
+    // Disable future dates
+    if (isAfter(date, today)) {
+        return true;
+    }
+    
+    return false;
+}
+
+
 
 export default function CohortAttendancePage({ params, searchParams }: CohortAttendancePageProps) {
     const router = useRouter();
@@ -83,10 +112,17 @@ export default function CohortAttendancePage({ params, searchParams }: CohortAtt
     } | null>(null);
     const [loading, setLoading] = useState(true);
     const [progressLoading, setProgressLoading] = useState(true);
-    const [updatingStudent, setUpdatingStudent] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [attendanceDate, setAttendanceDate] = useState<Date>(new Date());
     const [cohortSlug, setCohortSlug] = useState<string>('');
+    
+    // New state for batch save functionality
+    const [pendingChanges, setPendingChanges] = useState<Record<string, AttendanceStatus | null>>({});
+    const [isSaving, setIsSaving] = useState(false);
+    const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+    
+    // State for calendar popover
+    const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
     // Load initial data
     useEffect(() => {
@@ -179,73 +215,141 @@ export default function CohortAttendancePage({ params, searchParams }: CohortAtt
             return;
         }
 
-        try {
-            setUpdatingStudent(studentId);
+        // Store change locally instead of saving immediately
+        setPendingChanges(prev => ({
+            ...prev,
+            [studentId]: status
+        }));
+        
+        setHasUnsavedChanges(true);
+        
+        // Update UI immediately for visual feedback
+        setAttendanceData(prev => {
+            if (!prev) return prev;
+            
+            return {
+                ...prev,
+                students: prev.students.map(student => 
+                    student.id === studentId 
+                        ? { 
+                            ...student, 
+                            attendance: status 
+                                    ? { id: 'pending', status } 
+                                    : null 
+                          }
+                        : student
+                )
+            };
+        });
+    };
 
-            // Prepare the attendance record for bulkUpdateAttendance
-            const result = await bulkUpdateAttendance({
-                date: attendanceDate,
-                cohortId: attendanceData.cohort.id,
-                attendanceRecords: [{
+    const handleSaveAttendance = async () => {
+        if (!attendanceData || Object.keys(pendingChanges).length === 0) {
+            return;
+        }
+
+        try {
+            setIsSaving(true);
+
+            // Convert pending changes to the format expected by bulkUpdateAttendance
+            const attendanceRecords = Object.entries(pendingChanges)
+                .filter(([_, status]) => status !== null) // Only include non-null statuses
+                .map(([studentId, status]) => ({
                     studentId,
                     status: status!
-                }]
-            });
+                }));
+            
+            const result = await bulkUpdateAttendance({
+                date: format(attendanceDate, 'yyyy-MM-dd'), // Send as date string to avoid timezone issues
+                cohortId: attendanceData.cohort.id,
+                attendanceRecords
+            } as any); // Temporary type assertion while schema updates
+
 
             if (result.success) {
-                // Update local state
-                setAttendanceData(prev => {
-                    if (!prev) return prev;
-                    
-                    return {
-                        ...prev,
-                        students: prev.students.map(student => 
-                            student.id === studentId 
-                                ? { 
-                                    ...student, 
-                                    attendance: status 
-                                            ? { id: 'temp', status } 
-                                            : null 
-                                  }
-                                : student
-                        )
-                    };
-                });
-
+                // Clear pending changes
+                setPendingChanges({});
+                setHasUnsavedChanges(false);
+                
                 toast({
-                    title: "Attendance Updated",
-                    description: `Successfully recorded ${status === 'PRESENT' ? 'present' : 'absence'} for student.`,
+                    title: "Attendance Saved",
+                    description: `Successfully recorded attendance for ${attendanceRecords.length} students.`,
                     variant: "default",
                 });
 
-                // Refresh the page to get updated data
-                router.refresh();
+                // Refresh student progress data to update individual progress visualization
+                if (attendanceData.cohort.id) {
+                    await loadStudentProgressData(attendanceData.cohort.id);
+                }
+                
+                // Note: Daily statistics are automatically updated from local state,
+                // no need to reload attendance data
 
             } else {
                 toast({
-                    title: "Update Failed",
-                    description: typeof result.error === 'string' ? result.error : 'Failed to update attendance',
+                    title: "Save Failed",
+                    description: typeof result.error === 'string' ? result.error : 'Failed to save attendance',
                     variant: "destructive",
                 });
             }
 
         } catch (err) {
-            console.error('Error updating attendance:', err);
+            console.error('Error saving attendance:', err);
             toast({
-                title: "Update Failed",
-                description: "An unexpected error occurred while updating attendance.",
+                title: "Save Failed",
+                description: "An unexpected error occurred while saving attendance.",
                 variant: "destructive",
             });
         } finally {
-            setUpdatingStudent(null);
+            setIsSaving(false);
         }
     };
 
+    // Helper to check if all students have attendance recorded
+    const allStudentsRecorded = () => {
+        return attendanceData?.students.every(student => {
+            // Check if student has pending change or existing attendance
+            return pendingChanges[student.id] !== undefined || student.attendance?.status;
+        }) || false;
+    };
+
+    // Helper to determine button text
+    const getSaveButtonText = () => {
+        const hasExistingAttendance = attendanceData?.students.some(s => s.attendance?.status);
+        return hasExistingAttendance ? "Update Attendance" : "Save Attendance";
+    };
+
     const handleDateChange = (newDate: Date) => {
+        // Check for unsaved changes before navigating
+        if (hasUnsavedChanges) {
+            const confirmChange = window.confirm(
+                'You have unsaved changes. Are you sure you want to navigate to a different date? All unsaved changes will be lost.'
+            );
+            if (!confirmChange) {
+                return;
+            }
+        }
+        
+        // Clear pending changes when navigating to a different date
+        setPendingChanges({});
+        setHasUnsavedChanges(false);
+        
         setAttendanceDate(newDate);
         // Update URL without page refresh
         const formattedDate = format(newDate, 'yyyy-MM-dd');
         router.push(`/attendance/${cohortSlug}?date=${formattedDate}`);
+    };
+
+    // Handle calendar date selection
+    const handleCalendarDateSelect = (selectedDate: Date | undefined) => {
+        if (!selectedDate || isDateDisabled(selectedDate)) {
+            return;
+        }
+        
+        // Get valid attendance date (handles weekends and validation)
+        const validDate = getValidAttendanceDate(format(selectedDate, 'yyyy-MM-dd'));
+        handleDateChange(validDate);
+        setIsCalendarOpen(false);
     };
 
     // Show loading state
@@ -361,7 +465,7 @@ export default function CohortAttendancePage({ params, searchParams }: CohortAtt
                                         )}
                                     </div>
                                     
-                                    <div className="flex items-center justify-between p-5">
+                                    <div className="flex items-center justify-center space-x-2 p-5">
                                         <Button 
                                             variant="outline" 
                                             size="sm"
@@ -369,6 +473,30 @@ export default function CohortAttendancePage({ params, searchParams }: CohortAtt
                                         >
                                             ← Previous Day
                                         </Button>
+
+                                        <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+                                            <PopoverTrigger asChild>
+                                                <Button 
+                                                    variant="outline" 
+                                                    size="sm"
+                                                    className="px-3"
+                                                    title="Pick a date"
+                                                >
+                                                    <CalendarIcon className="h-4 w-4" />
+                                                </Button>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-auto p-0" align="center">
+                                                <Calendar
+                                                    mode="single"
+                                                    selected={attendanceDate}
+                                                    onSelect={handleCalendarDateSelect}
+                                                    disabled={isDateDisabled}
+                                                    initialFocus
+                                                    fromYear={2020}
+                                                    toYear={new Date().getFullYear()}
+                                                />
+                                            </PopoverContent>
+                                        </Popover>
 
                                         {nextWeekday && (
                                             <Button 
@@ -475,11 +603,16 @@ export default function CohortAttendancePage({ params, searchParams }: CohortAtt
                                                     <AttendanceStatusDropdown
                                                         studentId={student.id}
                                                         cohortId={cohort.id}
-                                                        currentStatus={student.attendance?.status || null}
+                                                        currentStatus={
+                                                            pendingChanges[student.id] !== undefined 
+                                                                ? pendingChanges[student.id] 
+                                                                : student.attendance?.status || null
+                                                        }
                                                         date={attendanceDate}
                                                         isEditable={isEditable}
                                                         onStatusChange={handleStatusChange}
-                                                        isUpdating={updatingStudent === student.id}
+                                                        isUpdating={false}
+                                                        isPending={pendingChanges[student.id] !== undefined}
                                                     />
                                                 </div>
                                             </div>
@@ -492,6 +625,42 @@ export default function CohortAttendancePage({ params, searchParams }: CohortAtt
                                         <p className="text-muted-foreground">
                                             There are no active students in this cohort.
                                         </p>
+                                    </div>
+                                )}
+                                
+                                {/* Save Button Section */}
+                                {isEditable && (
+                                    <div className="border-t pt-6 mt-6">
+                                        <div className="flex items-center justify-between">
+                                            <div className="text-sm text-muted-foreground">
+                                                {Object.keys(pendingChanges).length > 0 && (
+                                                    <span className="text-amber-600">
+                                                        {Object.keys(pendingChanges).length} unsaved changes
+                                                    </span>
+                                                )}
+                                            </div>
+                                            
+                                            <Button
+                                                onClick={handleSaveAttendance}
+                                                disabled={!allStudentsRecorded() || isSaving}
+                                                className="min-w-[120px]"
+                                            >
+                                                {isSaving ? (
+                                                    <>
+                                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                                        Saving...
+                                                    </>
+                                                ) : (
+                                                    getSaveButtonText()
+                                                )}
+                                            </Button>
+                                        </div>
+                                        
+                                        {!allStudentsRecorded() && (
+                                            <p className="text-xs text-muted-foreground mt-2">
+                                                Please record attendance for all students before saving
+                                            </p>
+                                        )}
                                     </div>
                                 )}
                             </CardContent>

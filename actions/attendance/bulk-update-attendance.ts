@@ -32,10 +32,15 @@ async function bulkUpdateAttendanceInternal(data: BulkUpdateAttendanceInput): Pr
     const startTime = Date.now();
 
     try {
+        // Safely handle date for logging (before validation transforms it)
+        const logDate = typeof data.date === 'string' 
+            ? data.date 
+            : data.date.toISOString();
+
         logger.logServerAction('bulk_update', 'attendance', {
             metadata: { 
                 cohortId: data.cohortId,
-                date: data.date.toISOString(),
+                date: logDate,
                 recordCount: data.attendanceRecords.length
             }
         });
@@ -199,6 +204,12 @@ export const bulkUpdateAttendance = withAttendanceEditAuth(
         extractCohortId: (data: BulkUpdateAttendanceInput) => data.cohortId,
         extractDate: (data: BulkUpdateAttendanceInput) => data.date,
         logResource: 'bulk_update',
-        getResourceId: (data: BulkUpdateAttendanceInput) => `${data.cohortId}-${data.date.toISOString().split('T')[0]}`
+        getResourceId: (data: BulkUpdateAttendanceInput) => {
+            // Handle both string and Date inputs safely
+            const dateStr = typeof data.date === 'string' 
+                ? data.date 
+                : data.date.toISOString().split('T')[0];
+            return `${data.cohortId}-${dateStr}`;
+        }
     }
 );
