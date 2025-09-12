@@ -1,28 +1,26 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { CalendarDays, Users, Clock, ArrowLeft, CalendarIcon } from 'lucide-react';
-import Link from 'next/link';
-import { format, isWeekend, subDays, addDays, startOfDay, isAfter } from 'date-fns';
-
-import { PageErrorBoundary, SectionErrorBoundary } from '@/components/error';
-import { Grid, PageContainer, PageHeader, Section } from '@/components/layout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { useToast } from '@/hooks/use-toast';
 import { AttendanceStatus } from '@prisma/client';
-import { getCohortForAttendance } from '@/data/attendance/get-cohort-for-attendance';
-import { getCohortAttendanceForDate } from '@/data/attendance/get-cohort-attendance-for-date';
+import { format, isWeekend, subDays, addDays, startOfDay, isAfter } from 'date-fns';
+import { Users, ArrowLeft } from 'lucide-react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+
 import { bulkUpdateAttendance } from '@/actions/attendance/bulk-update-attendance';
-import { AttendanceStatusDropdown } from '@/components/attendance/attendance-status-dropdown';
 import { AttendancePieChart } from '@/components/attendance/attendance-pie-chart';
 import { AttendanceStatistics } from '@/components/attendance/attendance-statistics';
 import { StudentAttendanceProgress } from '@/components/attendance/student-attendance-progress';
+import StudentRow from '@/components/attendance/student-row';
+import { PageErrorBoundary, SectionErrorBoundary } from '@/components/error';
+import { Grid, PageContainer, PageHeader, Section } from '@/components/layout';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { getCohortAttendanceForDate } from '@/data/attendance/get-cohort-attendance-for-date';
+import { getCohortForAttendance } from '@/data/attendance/get-cohort-for-attendance';
 import { getStudentAttendanceSummary } from '@/data/attendance/get-student-attendance-summary';
+import { useToast } from '@/hooks/use-toast';
+import AttendanceDatePicker from './attendance-date-picker';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,72 +33,16 @@ interface CohortAttendancePageProps {
     }>;
 }
 
-// Helper function to get a valid weekday (skip weekends)
-function getValidAttendanceDate(dateInput?: string): Date {
-    let targetDate: Date;
-    
-    if (dateInput) {
-        // ✅ FIX: Use local timezone consistently (same as validation schema)
-        const [year, month, day] = dateInput.split('-').map(Number);
-        targetDate = new Date(year, month - 1, day); // month is 0-indexed, creates local date
-        
-        // Validate the date
-        if (isNaN(targetDate.getTime())) {
-            targetDate = new Date(); // Fallback to a new local date if invalid
-        }
-    } else {
-        targetDate = new Date();
-    }
-    
-    // Always normalize to start of day FIRST using date-fns
-    // Now operating on local timezone date (consistent with validation)
-    targetDate = startOfDay(targetDate);
-    
-    // If it's a weekend, go back to the previous Friday
-    while (isWeekend(targetDate)) {
-        targetDate = startOfDay(subDays(targetDate, 1));
-    }
-    
-    // Ensure it's not in the future (comparing calendar days using date-fns)
-    const todayStart = startOfDay(new Date());
-    
-    if (isAfter(targetDate, todayStart)) {
-        targetDate = todayStart;
-        // If today is a weekend, go back to the previous Friday
-        while (isWeekend(targetDate)) {
-            targetDate = startOfDay(subDays(targetDate, 1));
-        }
-    }
-    
-    return targetDate;
-}
-
-// Helper function to determine if a date should be disabled in the calendar
-function isDateDisabled(date: Date): boolean {
-    const today = startOfDay(new Date());
-    
-    // Disable weekends
-    if (isWeekend(date)) {
-        return true;
-    }
-    
-    // Disable future dates
-    if (isAfter(date, today)) {
-        return true;
-    }
-    
-    return false;
-}
 
 
 
 export default function CohortAttendancePage({ params, searchParams }: CohortAttendancePageProps) {
     const router = useRouter();
     const { toast } = useToast();
-    
+
     // State for attendance management
     const [attendanceData, setAttendanceData] = useState<{
-        cohort: { id: string; name: string };
+
         totalStudents: number;
         students: any[];
         isEditable: boolean;
@@ -115,14 +57,13 @@ export default function CohortAttendancePage({ params, searchParams }: CohortAtt
     const [error, setError] = useState<string | null>(null);
     const [attendanceDate, setAttendanceDate] = useState<Date>(new Date());
     const [cohortSlug, setCohortSlug] = useState<string>('');
-    
+
     // New state for batch save functionality
     const [pendingChanges, setPendingChanges] = useState<Record<string, AttendanceStatus | null>>({});
     const [isSaving, setIsSaving] = useState(false);
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-    
-    // State for calendar popover
-    const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+
+
 
     // Load initial data
     useEffect(() => {
@@ -130,12 +71,12 @@ export default function CohortAttendancePage({ params, searchParams }: CohortAtt
             try {
                 const resolvedParams = await params;
                 const resolvedSearchParams = await searchParams;
-                
+
                 setCohortSlug(resolvedParams.cohortSlug);
                 setAttendanceDate(getValidAttendanceDate(resolvedSearchParams.date));
-                
+
                 await loadAttendanceData(resolvedParams.cohortSlug, getValidAttendanceDate(resolvedSearchParams.date));
-                
+
                 // Load student progress data after we have the cohort data
                 const cohortResult = await getCohortForAttendance(resolvedParams.cohortSlug);
                 if (cohortResult.success) {
@@ -146,7 +87,7 @@ export default function CohortAttendancePage({ params, searchParams }: CohortAtt
                 console.error('Error loading page parameters:', err);
             }
         };
-        
+
         loadData();
     }, [params, searchParams]);
 
@@ -192,7 +133,7 @@ export default function CohortAttendancePage({ params, searchParams }: CohortAtt
         try {
             setProgressLoading(true);
             const result = await getStudentAttendanceSummary({ cohortId });
-            
+
             if (result.success) {
                 setStudentProgressData(result.data);
             } else {
@@ -220,23 +161,23 @@ export default function CohortAttendancePage({ params, searchParams }: CohortAtt
             ...prev,
             [studentId]: status
         }));
-        
+
         setHasUnsavedChanges(true);
-        
+
         // Update UI immediately for visual feedback
         setAttendanceData(prev => {
             if (!prev) return prev;
-            
+
             return {
                 ...prev,
-                students: prev.students.map(student => 
-                    student.id === studentId 
-                        ? { 
-                            ...student, 
-                            attendance: status 
-                                    ? { id: 'pending', status } 
-                                    : null 
-                          }
+                students: prev.students.map(student =>
+                    student.id === studentId
+                        ? {
+                            ...student,
+                            attendance: status
+                                ? { id: 'pending', status }
+                                : null
+                        }
                         : student
                 )
             };
@@ -258,7 +199,7 @@ export default function CohortAttendancePage({ params, searchParams }: CohortAtt
                     studentId,
                     status: status!
                 }));
-            
+
             const result = await bulkUpdateAttendance({
                 date: format(attendanceDate, 'yyyy-MM-dd'), // Send as date string to avoid timezone issues
                 cohortId: attendanceData.cohort.id,
@@ -270,7 +211,7 @@ export default function CohortAttendancePage({ params, searchParams }: CohortAtt
                 // Clear pending changes
                 setPendingChanges({});
                 setHasUnsavedChanges(false);
-                
+
                 toast({
                     title: "Attendance Saved",
                     description: `Successfully recorded attendance for ${attendanceRecords.length} students.`,
@@ -281,7 +222,7 @@ export default function CohortAttendancePage({ params, searchParams }: CohortAtt
                 if (attendanceData.cohort.id) {
                     await loadStudentProgressData(attendanceData.cohort.id);
                 }
-                
+
                 // Note: Daily statistics are automatically updated from local state,
                 // no need to reload attendance data
 
@@ -329,11 +270,11 @@ export default function CohortAttendancePage({ params, searchParams }: CohortAtt
                 return;
             }
         }
-        
+
         // Clear pending changes when navigating to a different date
         setPendingChanges({});
         setHasUnsavedChanges(false);
-        
+
         setAttendanceDate(newDate);
         // Update URL without page refresh
         const formattedDate = format(newDate, 'yyyy-MM-dd');
@@ -345,7 +286,7 @@ export default function CohortAttendancePage({ params, searchParams }: CohortAtt
         if (!selectedDate || isDateDisabled(selectedDate)) {
             return;
         }
-        
+
         // Get valid attendance date (handles weekends and validation)
         const validDate = getValidAttendanceDate(format(selectedDate, 'yyyy-MM-dd'));
         handleDateChange(validDate);
@@ -437,10 +378,23 @@ export default function CohortAttendancePage({ params, searchParams }: CohortAtt
                 />
 
                 {/* Date Selection and Statistics */}
-                <Section>
+                <AttendanceDatePicker
+                    attendanceDate={attendanceDate}
+                    isEditable={isEditable}
+                    handleDateChange={handleDateChange}
+                    handleCalendarDateSelect={handleCalendarDateSelect}
+                    isDateDisabled={isDateDisabled}
+                    nextWeekday={nextWeekday}
+                    previousWeekday={previousWeekday}
+                    presentCount={presentCount}
+                    absentCount={absentCount}
+                    unrecordedCount={unrecordedCount}
+                    totalStudents={totalStudents}
+                />
+                {/* <Section>
                     <SectionErrorBoundary sectionName="date and statistics">
                         <div className="flex flex-col lg:flex-row gap-6 mb-8">
-                            {/* Date Navigation */}
+                          
                             <Card className="lg:w-1/3">
                                 <CardHeader>
                                     <CardTitle className="flex items-center justify-center text-lg">
@@ -456,7 +410,7 @@ export default function CohortAttendancePage({ params, searchParams }: CohortAtt
                                         <div className="text-lg text-muted-foreground">
                                             {format(attendanceDate, 'MMMM d, yyyy')}
                                         </div>
-                                        
+
                                         {!isEditable && (
                                             <Badge variant="secondary" className="mt-2">
                                                 <Clock className="h-3 w-3 mr-1" />
@@ -464,10 +418,10 @@ export default function CohortAttendancePage({ params, searchParams }: CohortAtt
                                             </Badge>
                                         )}
                                     </div>
-                                    
+
                                     <div className="flex items-center justify-center space-x-2 p-5">
-                                        <Button 
-                                            variant="outline" 
+                                        <Button
+                                            variant="outline"
                                             size="sm"
                                             onClick={() => handleDateChange(previousWeekday)}
                                         >
@@ -476,8 +430,8 @@ export default function CohortAttendancePage({ params, searchParams }: CohortAtt
 
                                         <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                                             <PopoverTrigger asChild>
-                                                <Button 
-                                                    variant="outline" 
+                                                <Button
+                                                    variant="outline"
                                                     size="sm"
                                                     className="px-3"
                                                     title="Pick a date"
@@ -499,8 +453,8 @@ export default function CohortAttendancePage({ params, searchParams }: CohortAtt
                                         </Popover>
 
                                         {nextWeekday && (
-                                            <Button 
-                                                variant="outline" 
+                                            <Button
+                                                variant="outline"
                                                 size="sm"
                                                 onClick={() => handleDateChange(nextWeekday)}
                                             >
@@ -511,7 +465,7 @@ export default function CohortAttendancePage({ params, searchParams }: CohortAtt
                                 </CardContent>
                             </Card>
 
-                            {/* Quick Statistics */}
+                           
                             <div className="lg:w-2/3">
                                 <Grid cols="3" className="gap-4">
                                     <Card>
@@ -556,7 +510,7 @@ export default function CohortAttendancePage({ params, searchParams }: CohortAtt
                             </div>
                         </div>
                     </SectionErrorBoundary>
-                </Section>
+                </Section> */}
 
                 {/* Student Attendance Table */}
                 <Section>
@@ -565,7 +519,7 @@ export default function CohortAttendancePage({ params, searchParams }: CohortAtt
                             <CardHeader>
                                 <CardTitle>Student Attendance</CardTitle>
                                 <p className="text-sm text-muted-foreground">
-                                    {isEditable 
+                                    {isEditable
                                         ? "Record or update attendance for each student"
                                         : "View historical attendance data (read-only)"
                                     }
@@ -575,47 +529,15 @@ export default function CohortAttendancePage({ params, searchParams }: CohortAtt
                                 {students.length > 0 ? (
                                     <div className="space-y-4">
                                         {students.map((student) => (
-                                            <div 
+                                            <StudentRow
                                                 key={student.id}
-                                                className="flex items-center justify-between p-4 border rounded-lg"
-                                            >
-                                                <div className="flex items-center space-x-4">
-                                                    <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                                                        {student.avatar ? (
-                                                            <img 
-                                                                src={student.avatar} 
-                                                                alt={student.name}
-                                                                className="w-10 h-10 rounded-full"
-                                                            />
-                                                        ) : (
-                                                            <span className="text-sm font-medium">
-                                                                {student.name.charAt(0).toUpperCase()}
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                    <div>
-                                                        <div className="font-medium">{student.name}</div>
-                                                        <div className="text-sm text-muted-foreground">{student.email}</div>
-                                                    </div>
-                                                </div>
-
-                                                <div className="flex items-center space-x-2">
-                                                    <AttendanceStatusDropdown
-                                                        studentId={student.id}
-                                                        cohortId={cohort.id}
-                                                        currentStatus={
-                                                            pendingChanges[student.id] !== undefined 
-                                                                ? pendingChanges[student.id] 
-                                                                : student.attendance?.status || null
-                                                        }
-                                                        date={attendanceDate}
-                                                        isEditable={isEditable}
-                                                        onStatusChange={handleStatusChange}
-                                                        isUpdating={false}
-                                                        isPending={pendingChanges[student.id] !== undefined}
-                                                    />
-                                                </div>
-                                            </div>
+                                                student={student}
+                                                cohort={cohort}
+                                                pendingChanges={pendingChanges}
+                                                attendanceDate={attendanceDate}
+                                                isEditable={isEditable}
+                                                handleStatusChange={handleStatusChange}
+                                            />
                                         ))}
                                     </div>
                                 ) : (
@@ -627,7 +549,7 @@ export default function CohortAttendancePage({ params, searchParams }: CohortAtt
                                         </p>
                                     </div>
                                 )}
-                                
+
                                 {/* Save Button Section */}
                                 {isEditable && (
                                     <div className="border-t pt-6 mt-6">
@@ -639,7 +561,7 @@ export default function CohortAttendancePage({ params, searchParams }: CohortAtt
                                                     </span>
                                                 )}
                                             </div>
-                                            
+
                                             <Button
                                                 onClick={handleSaveAttendance}
                                                 disabled={!allStudentsRecorded() || isSaving}
@@ -655,7 +577,7 @@ export default function CohortAttendancePage({ params, searchParams }: CohortAtt
                                                 )}
                                             </Button>
                                         </div>
-                                        
+
                                         {!allStudentsRecorded() && (
                                             <p className="text-xs text-muted-foreground mt-2">
                                                 Please record attendance for all students before saving
@@ -672,7 +594,7 @@ export default function CohortAttendancePage({ params, searchParams }: CohortAtt
                 <Section>
                     <SectionErrorBoundary sectionName="attendance visualization">
                         <Grid cols="2" gap="lg">
-                            <AttendanceStatistics 
+                            <AttendanceStatistics
                                 data={{
                                     present: presentCount,
                                     absentSick: absentSickCount,
@@ -683,8 +605,8 @@ export default function CohortAttendancePage({ params, searchParams }: CohortAtt
                                 totalStudents={totalStudents}
                                 date={attendanceDate}
                             />
-                            
-                            <AttendancePieChart 
+
+                            <AttendancePieChart
                                 data={{
                                     present: presentCount,
                                     absentSick: absentSickCount,
