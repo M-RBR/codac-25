@@ -1,10 +1,11 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { PrismaClient } from '@prisma/client';
-import type { CourseCategory, LessonType } from '@prisma/client';
+
 import { MarkdownPlugin } from '@platejs/markdown';
+import { CourseCategory, LessonType, PrismaClient } from '@prisma/client';
 import matter from 'gray-matter';
 import { createPlateEditor } from 'platejs/react';
+
 import { logger } from '../../../lib/logger';
 
 const prisma = new PrismaClient();
@@ -39,8 +40,8 @@ interface FileNode {
     children?: FileNode[];
 }
 
-const getCourseCategory = (dirName: string): CourseCategory => {
-    const categoryMap: { [key: string]: CourseCategory } = {
+const getCourseCategory = (dirName: string) => {
+    const categoryMap: { [key: string]: string } = {
         'web': 'WEB_DEVELOPMENT',
         'data': 'DATA_SCIENCE',
         'career': 'CAREER_DEVELOPMENT',
@@ -156,7 +157,7 @@ async function createCourse(name: string, description: string = ''): Promise<str
             data: {
                 title: name.charAt(0).toUpperCase() + name.slice(1).replace(/[-_]/g, ' '),
                 description: description || `${name} course content`,
-                category: getCourseCategory(name),
+                category: getCourseCategory(name) as CourseCategory,
                 isPublished: true,
                 order: extractOrder(name),
             },
@@ -213,7 +214,7 @@ async function createLesson(filePath: string, projectId: string): Promise<string
 
         const plateContent = markdownToPlateJS(markdownContent);
 
-        let lessonType: LessonType = 'TEXT';
+        let lessonType: string = 'TEXT';
         if (markdownContent.includes('video') || markdownContent.includes('youtube')) {
             lessonType = 'VIDEO';
         } else if (markdownContent.includes('quiz') || markdownContent.includes('question')) {
@@ -242,7 +243,7 @@ async function createLesson(filePath: string, projectId: string): Promise<string
                 title: lessonTitle,
                 description: frontmatter.metaDescription || `${fileName} lesson content`,
                 content: plateContent,
-                type: lessonType,
+                type: lessonType as LessonType,
                 projectId,
                 isPublished: true,
                 order: extractOrder(fileName, frontmatter),
