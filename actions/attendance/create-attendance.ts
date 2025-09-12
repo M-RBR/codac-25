@@ -10,10 +10,6 @@ import {
     type ServerActionResult,
     handlePrismaError
 } from '@/lib/server-action-utils';
-import {
-    createAttendanceSchema,
-    attendanceDateSchema
-} from '@/lib/validation/attendance';
 
 
 // Define return type with Prisma's generated types
@@ -132,7 +128,7 @@ export async function createAttendance(data: {
             };
         }
 
-        console.log("date", date);
+
         // Create attendance record
         const attendance = await prisma.attendance.create({
             data: {
