@@ -8,12 +8,13 @@ import { AttendanceStatusDropdown } from "./attendance-status-dropdown";
 interface StudentRowProps {
     student: StudentWithAttendance;
     cohort: Cohort;
-    pendingChanges: Record<string, AttendanceStatus>;
+    pendingChanges: Record<string, AttendanceStatus | null>;
     attendanceDate: Date;
     isEditable: boolean;
     handleStatusChange: (studentId: string, status: AttendanceStatus | null) => void;
 }
 export default function StudentRow({ student, cohort, pendingChanges, attendanceDate, isEditable, handleStatusChange }: StudentRowProps) {
+
     return (
 
         <div

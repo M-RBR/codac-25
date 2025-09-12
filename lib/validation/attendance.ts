@@ -6,7 +6,7 @@ export type { ServerActionResult } from '@/lib/server-action-utils';
 // Attendance status enum validation
 export const attendanceStatusSchema = z.enum([
   'PRESENT',
-  'ABSENT_SICK', 
+  'ABSENT_SICK',
   'ABSENT_EXCUSED',
   'ABSENT_UNEXCUSED'
 ]);
@@ -21,7 +21,13 @@ export const attendanceSchema = z.object({
 
 // Create attendance schema
 export const createAttendanceSchema = z.object({
-  date: z.date(),
+  date: z.string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format')
+    .transform((dateStr) => {
+      // Convert string to Date object at start of day in local timezone
+      const [year, month, day] = dateStr.split('-').map(Number);
+      return new Date(year, month - 1, day); // month is 0-indexed
+    }),
   status: attendanceStatusSchema,
   studentId: z.string().cuid('Invalid student ID'),
   cohortId: z.string().cuid('Invalid cohort ID'),
@@ -52,9 +58,8 @@ export const bulkUpdateAttendanceSchema = z.object({
 // Get attendance schema for filtering
 export const getAttendanceSchema = z.object({
   cohortId: z.string().cuid('Invalid cohort ID'),
-  startDate: z.date().optional(),
-  endDate: z.date().optional(),
-  studentId: z.string().cuid('Invalid student ID').optional(),
+  date: z.date(),
+  studentId: z.string().cuid('Invalid student ID'),
 });
 
 // Date range validation with weekday constraint

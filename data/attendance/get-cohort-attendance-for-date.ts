@@ -27,19 +27,14 @@ export type GetCohortAttendanceForDateResult = ServerActionResult<{
 }>;
 
 export async function getCohortAttendanceForDate(
-    cohortSlug: string, 
+    cohortSlug: string,
     date: Date | string
 ): Promise<GetCohortAttendanceForDateResult> {
     const startTime = Date.now();
 
     // Normalize date input to Date object (move to function scope for error handling)
-    const normalizedDate = typeof date === 'string' 
-        ? (() => {
-            const [year, month, day] = date.split('-').map(Number);
-            return new Date(year, month -1, day);
-          })()
-        : date;
-
+    const normalizedDate = new Date(date)
+    console.log("normalizedDate", normalizedDate);
     try {
 
         logger.info('Fetching cohort attendance for specific date', {
@@ -99,11 +94,11 @@ export async function getCohortAttendanceForDate(
         });
 
         logger.logDatabaseOperation('findMany', 'users', undefined, {
-            metadata: { 
-                cohortId: cohort.id, 
-                date: normalizedDate.toISOString(), 
-                studentsCount: students.length, 
-                purpose: 'attendance_by_date' 
+            metadata: {
+                cohortId: cohort.id,
+                date: normalizedDate.toISOString(),
+                studentsCount: students.length,
+                purpose: 'attendance_by_date'
             }
         });
 
@@ -125,7 +120,7 @@ export async function getCohortAttendanceForDate(
         // Date is editable if it's:
         // 1. Today or in the past (not future)
         // 2. Within the last 30 days (not too old)
-        const isEditable = 
+        const isEditable =
             (isSameDay(inputDateStart, todayStart) || isBefore(inputDateStart, todayStart)) &&
             (isSameDay(inputDateStart, thirtyDaysAgoStart) || isAfter(inputDateStart, thirtyDaysAgoStart));
 

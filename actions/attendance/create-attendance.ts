@@ -1,20 +1,19 @@
 'use server';
 
+import { AttendanceStatus, Prisma } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
-import { Prisma } from '@prisma/client';
 
+import { auth } from '@/lib/auth/auth';
 import { prisma } from '@/lib/db';
 import { logger } from '@/lib/logger';
-import { auth } from '@/lib/auth/auth';
-import { 
-    createAttendanceSchema, 
-    type CreateAttendanceInput,
+import {
+    type ServerActionResult,
+    handlePrismaError
+} from '@/lib/server-action-utils';
+import {
+    createAttendanceSchema,
     attendanceDateSchema
 } from '@/lib/validation/attendance';
-import { 
-    type ServerActionResult, 
-    handlePrismaError 
-} from '@/lib/server-action-utils';
 
 
 // Define return type with Prisma's generated types
@@ -39,15 +38,20 @@ type AttendanceWithRelations = Prisma.AttendanceGetPayload<{
 
 type CreateAttendanceResult = ServerActionResult<AttendanceWithRelations>;
 
-export async function createAttendance(data: CreateAttendanceInput): Promise<CreateAttendanceResult> {
+export async function createAttendance(data: {
+    date: string;
+    status: AttendanceStatus;
+    studentId: string;
+    cohortId: string;
+}): Promise<CreateAttendanceResult> {
     const startTime = Date.now();
 
     try {
         logger.logServerAction('create', 'attendance', {
-            metadata: { 
-                studentId: data.studentId, 
+            metadata: {
+                studentId: data.studentId,
                 cohortId: data.cohortId,
-                date: data.date.toISOString(),
+                date: data.date,
                 status: data.status
             }
         });
@@ -75,18 +79,18 @@ export async function createAttendance(data: CreateAttendanceInput): Promise<Cre
         }
 
         // Validate input data
-        const validatedData = createAttendanceSchema.parse(data);
-        
-        // Validate that the date is a weekday
-        attendanceDateSchema.parse(validatedData.date);
+        // const validatedData = createAttendanceSchema.parse(data);
+
+        // // Validate that the date is a weekday
+        // attendanceDateSchema.parse(validatedData.date);
 
         // Verify that the student exists and belongs to the specified cohort
         const student = await prisma.user.findFirst({
             where: {
-                id: validatedData.studentId,
+                id: data.studentId,
                 role: 'STUDENT',
                 status: 'ACTIVE',
-                cohortId: validatedData.cohortId,
+                cohortId: data.cohortId,
             },
             select: { id: true, name: true, cohortId: true }
         });
@@ -100,7 +104,7 @@ export async function createAttendance(data: CreateAttendanceInput): Promise<Cre
 
         // Verify that the cohort exists
         const cohort = await prisma.cohort.findUnique({
-            where: { id: validatedData.cohortId },
+            where: { id: data.cohortId },
             select: { id: true, name: true, startDate: true, endDate: true }
         });
 
@@ -110,13 +114,13 @@ export async function createAttendance(data: CreateAttendanceInput): Promise<Cre
                 error: 'Cohort not found'
             };
         }
-
+        const date = new Date(data.date).toISOString();
         // Check if attendance record already exists for this student and date
         const existingAttendance = await prisma.attendance.findUnique({
             where: {
                 studentId_date: {
-                    studentId: validatedData.studentId,
-                    date: validatedData.date
+                    studentId: data.studentId,
+                    date: date
                 }
             }
         });
@@ -128,13 +132,14 @@ export async function createAttendance(data: CreateAttendanceInput): Promise<Cre
             };
         }
 
+        console.log("date", date);
         // Create attendance record
         const attendance = await prisma.attendance.create({
             data: {
-                date: validatedData.date,
-                status: validatedData.status,
-                studentId: validatedData.studentId,
-                cohortId: validatedData.cohortId,
+                date: date,
+                status: data.status,
+                studentId: data.studentId,
+                cohortId: data.cohortId,
             },
             include: {
                 student: {
@@ -155,7 +160,7 @@ export async function createAttendance(data: CreateAttendanceInput): Promise<Cre
         });
 
         logger.logDatabaseOperation('create', 'attendance', attendance.id, {
-            metadata: { 
+            metadata: {
                 studentId: attendance.studentId,
                 cohortId: attendance.cohortId,
                 date: attendance.date.toISOString(),
