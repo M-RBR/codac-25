@@ -62,7 +62,7 @@ export function AttendanceCohortCard({ cohort, className }: AttendanceCohortCard
                     <div className="space-y-2">
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <Calendar className="h-4 w-4" />
-                            <span>Started {format(new Date(cohort.startDate), 'MMM dd, yyyy')}</span>
+                            <span>Start date: {format(new Date(cohort.startDate), 'MMM dd, yyyy')}</span>
                         </div>
                         {cohort.endDate && (
                             <div className="flex items-center gap-2 text-sm text-muted-foreground">

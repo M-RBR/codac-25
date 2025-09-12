@@ -356,7 +356,7 @@ export default async function UserDetailsPage({ params }: { params: Promise<Para
                                             {user.cohort.name}
                                         </Link>
                                         <div className="text-sm text-muted-foreground">
-                                            Started {formatJoinDate(user.cohort.startDate)}
+                                            Startdate: {formatJoinDate(user.cohort.startDate)}
                                         </div>
                                     </div>
                                 </div>
