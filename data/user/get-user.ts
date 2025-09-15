@@ -24,7 +24,8 @@ export type UserProfile = Prisma.UserGetPayload<{
         portfolioUrl: true;
         currentJob: true;
         currentCompany: true;
-        graduationDate: true;
+        startDate: true;
+        endDate: true;
         createdAt: true;
         updatedAt: true;
         cohort: {
@@ -77,7 +78,8 @@ export async function getUser(id: string): Promise<GetUserResult> {
                 portfolioUrl: true,
                 currentJob: true,
                 currentCompany: true,
-                graduationDate: true,
+                startDate: true,
+                endDate: true,
                 createdAt: true,
                 updatedAt: true,
                 cohort: {

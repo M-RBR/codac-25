@@ -84,14 +84,14 @@ export function ProfileContent({ user }: ProfileContentProps) {
                             </p>
                         </div>
 
-                        {user.graduationDate && (
+                        {user.endDate && (
                             <div>
                                 <label className="text-sm font-medium text-muted-foreground">
                                     Graduation Date
                                 </label>
                                 <p className="mt-1 flex items-center gap-2">
                                     <Calendar className="h-4 w-4" />
-                                    {format(new Date(user.graduationDate), 'MMMM dd, yyyy')}
+                                    {format(new Date(user.endDate), 'MMMM dd, yyyy')}
                                 </p>
                             </div>
                         )}

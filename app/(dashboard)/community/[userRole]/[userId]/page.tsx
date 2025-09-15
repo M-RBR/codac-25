@@ -192,10 +192,10 @@ export default async function UserDetailsPage({ params }: { params: Promise<Para
                                     )}
 
                                     {/* Graduation Date */}
-                                    {user.graduationDate && (
+                                    {user.endDate && (
                                         <div className="flex items-center gap-2 text-muted-foreground mb-2">
                                             <GraduationCap className="h-4 w-4" />
-                                            <span>Graduated {formatDate(user.graduationDate)}</span>
+                                            <span>Graduated {formatDate(user.endDate)}</span>
                                         </div>
                                     )}
 

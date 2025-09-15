@@ -112,10 +112,10 @@ export default async function CommunityRolePage({ params }: { params: Promise<Pa
     if (userRole === 'alumni') {
         const currentYear = new Date().getFullYear();
         activeUsers = users.filter(user =>
-            user.graduationDate && new Date(user.graduationDate).getFullYear() >= currentYear - 2
+            user.endDate && new Date(user.endDate).getFullYear() >= currentYear - 2
         );
         inactiveUsers = users.filter(user =>
-            !user.graduationDate || new Date(user.graduationDate).getFullYear() < currentYear - 2
+            !user.endDate || new Date(user.endDate).getFullYear() < currentYear - 2
         );
         employedCount = users.filter(user => user.currentJob || user.currentCompany).length;
         recentCount = activeUsers.length;

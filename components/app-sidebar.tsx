@@ -11,6 +11,7 @@ import {
   User2,
   BookOpen,
   Lock,
+  ClipboardCheck,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -88,6 +89,14 @@ const buildNavigationData = (role?: string): NavigationGroup[] => {
       url: "/lms/admin",
       icon: Lock
     });
+    
+  if (role === "ADMIN") {
+    learningItems.push({
+      title: "Attendance",
+      url: "/attendance",
+      icon: ClipboardCheck,
+    });
+  }
   }
 
   return [

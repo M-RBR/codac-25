@@ -22,7 +22,8 @@ export type CohortWithStudents = Prisma.CohortGetPayload<{
                 portfolioUrl: true;
                 currentJob: true;
                 currentCompany: true;
-                graduationDate: true;
+                startDate: true;
+                endDate: true;
                 createdAt: true;
                 _count: {
                     select: {
@@ -75,7 +76,8 @@ export async function getCohorts(): Promise<GetCohortsResult> {
                         portfolioUrl: true,
                         currentJob: true,
                         currentCompany: true,
-                        graduationDate: true,
+                        startDate: true,
+                endDate: true,
                         createdAt: true,
                         _count: {
                             select: {
