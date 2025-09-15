@@ -6,6 +6,11 @@ import { isAfter, isBefore, isWeekend, parseISO, format, differenceInDays } from
  * Advanced validation schemas and business rules for attendance data
  */
 
+const attendanceDateSchema = z.string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format. Expected YYYY-MM-DD')
+  .transform((dateStr) => new Date(dateStr));
+
+/*
 // Base date validation with business rules
 const attendanceDateSchema = z.string().refine(
   (dateStr) => {
@@ -18,6 +23,7 @@ const attendanceDateSchema = z.string().refine(
   },
   { message: 'Invalid date format. Expected ISO date string (YYYY-MM-DD)' }
 ).transform((dateStr) => parseISO(dateStr));
+*/ 
 
 // Enhanced attendance record validation
 export const attendanceRecordValidationSchema = z.object({

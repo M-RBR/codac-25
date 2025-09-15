@@ -10,11 +10,6 @@ import {
     type ServerActionResult,
     handlePrismaError
 } from '@/lib/server-action-utils';
-import {
-    createAttendanceSchema,
-    attendanceDateSchema
-} from '@/lib/validation/attendance';
-
 
 // Define return type with Prisma's generated types
 type AttendanceWithRelations = Prisma.AttendanceGetPayload<{
@@ -77,12 +72,6 @@ export async function createAttendance(data: {
                 error: 'Insufficient permissions. Only mentors and admins can manage attendance.'
             };
         }
-
-        // Validate input data
-        // const validatedData = createAttendanceSchema.parse(data);
-
-        // // Validate that the date is a weekday
-        // attendanceDateSchema.parse(validatedData.date);
 
         // Verify that the student exists and belongs to the specified cohort
         const student = await prisma.user.findFirst({

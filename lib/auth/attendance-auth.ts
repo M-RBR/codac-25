@@ -188,6 +188,8 @@ export async function verifyAttendanceEditAccess(cohortId: string, targetDate: D
     authContext?: AttendanceAuthContext;
     isEditable?: boolean;
 }> {
+    const dateToCheck = typeof targetDate === 'string' ? new Date(targetDate) : targetDate;
+    /* 
     // Normalize targetDate to Date object for consistent handling
     const normalizedDate = typeof targetDate === 'string' 
         ? (() => {
@@ -195,6 +197,7 @@ export async function verifyAttendanceEditAccess(cohortId: string, targetDate: D
             return new Date(year, month - 1, day);
           })()
         : targetDate;
+    */
 
     const authContext = await getAttendanceAuthContext();
     
@@ -214,7 +217,7 @@ export async function verifyAttendanceEditAccess(cohortId: string, targetDate: D
                 userId: authContext.userId,
                 userRole: authContext.userRole,
                 cohortId,
-                date: normalizedDate.toISOString()
+                date: dateToCheck.toISOString()
             }
         });
         
@@ -233,7 +236,7 @@ export async function verifyAttendanceEditAccess(cohortId: string, targetDate: D
     }
 
     // Check if the date is within the editable window (30 days)
-    const daysDifference = Math.floor((Date.now() - normalizedDate.getTime()) / (1000 * 60 * 60 * 24));
+    const daysDifference = Math.floor((Date.now() - dateToCheck.getTime()) / (1000 * 60 * 60 * 24));
     const isEditable = daysDifference <= 30;
 
     if (!isEditable && authContext.userRole !== UserRole.ADMIN) {
@@ -244,7 +247,7 @@ export async function verifyAttendanceEditAccess(cohortId: string, targetDate: D
                 userId: authContext.userId,
                 userRole: authContext.userRole,
                 cohortId,
-                date: normalizedDate.toISOString(),
+                date: dateToCheck.toISOString(),
                 daysPast: daysDifference
             }
         });

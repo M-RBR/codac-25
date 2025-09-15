@@ -33,14 +33,17 @@ export async function getCohortAttendanceForDate(
     const startTime = Date.now();
 
     // Normalize date input to Date object (move to function scope for error handling)
+    const targetDate = typeof date === 'string' ? new Date(date) : date;
+    /*
     const normalizedDate = new Date(date)
     console.log("normalizedDate", normalizedDate);
+    */
     try {
 
         logger.info('Fetching cohort attendance for specific date', {
             action: 'get',
             resource: 'cohort_attendance_date',
-            metadata: { cohortSlug, date: normalizedDate.toISOString() },
+            metadata: { cohortSlug, date: targetDate.toISOString() },
         });
 
         const session = await auth();
@@ -78,7 +81,7 @@ export async function getCohortAttendanceForDate(
                 avatar: true,
                 attendanceRecords: {
                     where: {
-                        date: normalizedDate,
+                        date: targetDate,
                         cohortId: cohort.id,
                     },
                     select: {
@@ -96,7 +99,7 @@ export async function getCohortAttendanceForDate(
         logger.logDatabaseOperation('findMany', 'users', undefined, {
             metadata: {
                 cohortId: cohort.id,
-                date: normalizedDate.toISOString(),
+                date: targetDate.toISOString(),
                 studentsCount: students.length,
                 purpose: 'attendance_by_date'
             }
@@ -115,7 +118,7 @@ export async function getCohortAttendanceForDate(
         // Use date-fns for reliable, timezone-safe date operations
         const todayStart = startOfDay(new Date());
         const thirtyDaysAgoStart = startOfDay(subDays(new Date(), 30));
-        const inputDateStart = startOfDay(normalizedDate);
+        const inputDateStart = startOfDay(targetDate);
 
         // Date is editable if it's:
         // 1. Today or in the past (not future)
@@ -140,7 +143,7 @@ export async function getCohortAttendanceForDate(
             success: true,
             data: {
                 students: studentsWithAttendance,
-                date: normalizedDate,
+                date: targetDate,
                 cohortId: cohort.id,
                 isEditable,
             },
@@ -153,7 +156,7 @@ export async function getCohortAttendanceForDate(
                 resource: 'cohort_attendance_date',
                 duration: Date.now() - startTime,
                 cohortSlug,
-                date: normalizedDate.toISOString(),
+                date: targetDate.toISOString(),
             }
         });
         return { success: false, error: 'Failed to load attendance data for the selected date.' };
