@@ -45,7 +45,7 @@ export function InteractiveAttendanceManager({
     const [localStudents, setLocalStudents] = useState(students);
     const [studentLoadingStates, setStudentLoadingStates] = useState<StudentLoadingState>({});
 
-    // added useEffect to ensure update of state when navigating between dates with buttons
+    // added useEffect to ensure update sync state with server data when navigating between dates with buttons
     useEffect(() => {
         setLocalStudents(students);
     }, [students]);
