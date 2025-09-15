@@ -121,16 +121,6 @@ export const secureAttendanceRecordSchema = z.object({
   recordedBy: secureIdSchema
 });
 
-export const secureBulkAttendanceSchema = z.object({
-  cohortId: secureIdSchema,
-  date: secureDateSchema,
-  records: z.array(z.object({
-    studentId: secureIdSchema,
-    status: z.nativeEnum(AttendanceStatus)
-  })).max(200, 'Too many records in bulk operation'),
-  recordedBy: secureIdSchema
-});
-
 /**
  * Security context validation
  */

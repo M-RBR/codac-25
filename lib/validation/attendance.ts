@@ -39,22 +39,6 @@ export const updateAttendanceSchema = z.object({
   status: attendanceStatusSchema,
 });
 
-// Bulk update attendance schema for updating multiple students at once
-export const bulkUpdateAttendanceSchema = z.object({
-  date: z.string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format')
-    .transform((dateStr) => {
-      // Convert string to Date object at start of day in local timezone
-      const [year, month, day] = dateStr.split('-').map(Number);
-      return new Date(year, month - 1, day); // month is 0-indexed
-    }),
-  cohortId: z.string().cuid('Invalid cohort ID'),
-  attendanceRecords: z.array(z.object({
-    studentId: z.string().cuid('Invalid student ID'),
-    status: attendanceStatusSchema,
-  })).min(1, 'At least one attendance record is required'),
-});
-
 // Get attendance schema for filtering
 export const getAttendanceSchema = z.object({
   cohortId: z.string().cuid('Invalid cohort ID'),
@@ -135,6 +119,5 @@ export const editAttendanceDateSchema = z.date()
 export type AttendanceStatus = z.infer<typeof attendanceStatusSchema>;
 export type CreateAttendanceInput = z.infer<typeof createAttendanceSchema>;
 export type UpdateAttendanceInput = z.infer<typeof updateAttendanceSchema>;
-export type BulkUpdateAttendanceInput = z.infer<typeof bulkUpdateAttendanceSchema>;
 export type GetAttendanceInput = z.infer<typeof getAttendanceSchema>;
 export type DateRangeInput = z.infer<typeof dateRangeSchema>;

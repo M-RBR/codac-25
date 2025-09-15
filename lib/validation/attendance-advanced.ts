@@ -38,23 +38,6 @@ export const attendanceRecordValidationSchema = z.object({
   }
 );
 
-// Bulk attendance validation
-export const bulkAttendanceValidationSchema = z.object({
-  cohortId: z.string().min(1, 'Cohort ID is required'),
-  date: attendanceDateSchema,
-  records: z.array(z.object({
-    studentId: z.string().min(1, 'Student ID is required'),
-    status: z.nativeEnum(AttendanceStatus)
-  })).min(1, 'At least one attendance record is required'),
-  recordedBy: z.string().min(1, 'Recorder ID is required')
-}).refine(
-  (data) => !isWeekend(data.date),
-  {
-    message: 'Bulk attendance cannot be recorded for weekends',
-    path: ['date']
-  }
-);
-
 // Date range validation
 export const dateRangeValidationSchema = z.object({
   startDate: attendanceDateSchema,
@@ -260,81 +243,6 @@ export function validateAttendanceStatusTransition(
 }
 
 /**
- * Validate bulk attendance data integrity
- */
-export function validateBulkAttendanceIntegrity(
-  records: Array<{
-    studentId: string;
-    date: string;
-    status: AttendanceStatus;
-  }>,
-  context: {
-    expectedStudentIds: string[];
-    cohortStartDate: Date;
-    cohortEndDate?: Date | null;
-  }
-): ValidationResult {
-  const errors: string[] = [];
-  const warnings: string[] = [];
-
-  // Check for duplicate records
-  const duplicates = new Map<string, number>();
-  records.forEach((record, index) => {
-    const key = `${record.studentId}-${record.date}`;
-    if (duplicates.has(key)) {
-      errors.push(`Duplicate attendance record found for student ${record.studentId} on ${record.date} (records ${duplicates.get(key)} and ${index})`);
-    } else {
-      duplicates.set(key, index);
-    }
-  });
-
-  // Check for missing students
-  const recordStudentIds = new Set(records.map(r => r.studentId));
-  const missingStudents = context.expectedStudentIds.filter(id => !recordStudentIds.has(id));
-  
-  if (missingStudents.length > 0) {
-    warnings.push(`Missing attendance records for ${missingStudents.length} students: ${missingStudents.slice(0, 3).join(', ')}${missingStudents.length > 3 ? '...' : ''}`);
-  }
-
-  // Check for unknown students
-  const unknownStudents = Array.from(recordStudentIds).filter(id => !context.expectedStudentIds.includes(id));
-  
-  if (unknownStudents.length > 0) {
-    errors.push(`Unknown student IDs found: ${unknownStudents.join(', ')}`);
-  }
-
-  // Validate date formats and ranges
-  records.forEach((record, index) => {
-    try {
-      const date = parseISO(record.date);
-      if (isNaN(date.getTime())) {
-        errors.push(`Invalid date format in record ${index}: ${record.date}`);
-      } else {
-        const dateValidation = validateAttendanceDate(date, {
-          cohortStartDate: context.cohortStartDate,
-          cohortEndDate: context.cohortEndDate,
-          currentDate: new Date(),
-          allowFutureAttendance: false,
-          maxEditDays: 30,
-          allowWeekendAttendance: false
-        });
-        
-        errors.push(...dateValidation.errors.map(err => `Record ${index}: ${err}`));
-        warnings.push(...dateValidation.warnings.map(warn => `Record ${index}: ${warn}`));
-      }
-    } catch {
-      errors.push(`Failed to parse date in record ${index}: ${record.date}`);
-    }
-  });
-
-  return {
-    isValid: errors.length === 0,
-    errors,
-    warnings
-  };
-}
-
-/**
  * Validate user permissions for attendance operations
  */
 export function validateAttendancePermissions(
@@ -373,10 +281,6 @@ export function validateAttendancePermissions(
       if (userRole !== UserRole.ADMIN) {
         errors.push('Only administrators can delete attendance records');
       }
-      break;
-    
-    case 'bulk_update':
-      // All authorized roles can bulk update
       break;
     
     case 'export':
@@ -513,28 +417,6 @@ export async function validateAttendanceOperation(
           const dateValidation = validateAttendanceDate(recordValidation.data.date, operation.context);
           allErrors.push(...dateValidation.errors);
           allWarnings.push(...dateValidation.warnings);
-        }
-        break;
-
-      case 'bulk_update':
-        const bulkValidation = bulkAttendanceValidationSchema.safeParse(operation.data);
-        if (!bulkValidation.success) {
-          allErrors.push(...bulkValidation.error.errors.map(e => `${e.path.join('.')}: ${e.message}`));
-        } else if (operation.context.expectedStudentIds) {
-          const integrityValidation = validateBulkAttendanceIntegrity(
-            bulkValidation.data.records.map(r => ({
-              studentId: r.studentId,
-              date: format(bulkValidation.data.date, 'yyyy-MM-dd'),
-              status: r.status
-            })),
-            {
-              expectedStudentIds: operation.context.expectedStudentIds,
-              cohortStartDate: operation.context.cohortStartDate,
-              cohortEndDate: operation.context.cohortEndDate
-            }
-          );
-          allErrors.push(...integrityValidation.errors);
-          allWarnings.push(...integrityValidation.warnings);
         }
         break;
 
