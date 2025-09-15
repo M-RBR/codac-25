@@ -250,7 +250,6 @@ export function InteractiveAttendanceManager({
         <StudentAttendanceTable
             students={localStudents}
             cohort={cohort}
-            pendingChanges={{}} // No longer using pending changes
             attendanceDate={attendanceDate}
             isEditable={isEditable}
             isSaving={Object.values(studentLoadingStates).some(Boolean)} // Any student loading

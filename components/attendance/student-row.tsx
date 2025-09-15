@@ -8,12 +8,11 @@ import { AttendanceStatusDropdown } from "./attendance-status-dropdown";
 interface StudentRowProps {
     student: StudentWithAttendance;
     cohort: Cohort;
-    pendingChanges: Record<string, AttendanceStatus | null>;
     attendanceDate: Date;
     isEditable: boolean;
     handleStatusChange: (studentId: string, status: AttendanceStatus | null) => void;
 }
-export default function StudentRow({ student, cohort, pendingChanges, attendanceDate, isEditable, handleStatusChange }: StudentRowProps) {
+export default function StudentRow({ student, cohort, attendanceDate, isEditable, handleStatusChange }: StudentRowProps) {
 
     return (
 
@@ -45,16 +44,11 @@ export default function StudentRow({ student, cohort, pendingChanges, attendance
                 <AttendanceStatusDropdown
                     studentId={student.id}
                     cohortId={cohort.id}
-                    currentStatus={
-                        pendingChanges[student.id] !== undefined
-                            ? pendingChanges[student.id]
-                            : student.attendance?.status || null
-                    }
+                    currentStatus={student.attendance?.status || null}
                     date={attendanceDate}
                     isEditable={isEditable}
                     onStatusChange={handleStatusChange}
                     isUpdating={false}
-                    isPending={pendingChanges[student.id] !== undefined}
                 />
             </div>
         </div>

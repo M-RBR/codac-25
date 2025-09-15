@@ -11,7 +11,6 @@ import StudentRow from './student-row';
 type StudentAttendanceTableProps = {
     students: StudentWithAttendance[];
     cohort: Cohort;
-    pendingChanges: Record<string, AttendanceStatus | null>;
     attendanceDate: Date;
     isEditable: boolean;
     isSaving: boolean;
@@ -21,7 +20,6 @@ type StudentAttendanceTableProps = {
 export function StudentAttendanceTable({
     students,
     cohort,
-    pendingChanges,
     attendanceDate,
     isEditable,
     isSaving,
@@ -55,7 +53,6 @@ export function StudentAttendanceTable({
                                         key={student.id}
                                         student={student}
                                         cohort={cohort}
-                                        pendingChanges={pendingChanges}
                                         attendanceDate={attendanceDate}
                                         isEditable={isEditable}
                                         handleStatusChange={onStatusChange}
