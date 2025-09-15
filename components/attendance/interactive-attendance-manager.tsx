@@ -2,7 +2,7 @@
 
 import { AttendanceStatus, Cohort } from '@prisma/client';
 import { format } from 'date-fns';
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 
 import { createAttendance } from '@/actions/attendance/create-attendance';
 import { updateAttendance } from '@/actions/attendance/update-attendance';
@@ -44,6 +44,11 @@ export function InteractiveAttendanceManager({
     const { toast } = useToast();
     const [localStudents, setLocalStudents] = useState(students);
     const [studentLoadingStates, setStudentLoadingStates] = useState<StudentLoadingState>({});
+
+    // added useEffect to ensure update of state when navigating between dates with buttons
+    useEffect(() => {
+        setLocalStudents(students);
+    }, [students]);
 
     const isStudentLoading = useCallback((studentId: string): boolean => {
         return studentLoadingStates[studentId] ?? false;
