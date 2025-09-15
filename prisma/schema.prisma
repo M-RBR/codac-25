@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
 }
 
 datasource db {
@@ -96,11 +97,7 @@ model User {
   mentorships       Mentorship[]    @relation("Mentor")
   menteeMentorships Mentorship[]    @relation("Mentee")
 
-  // Document Relations (keeping existing functionality)
-  documents     Document[]
-  favorites     Favorite[]
-  suggestions   Suggestion[]
-  collaborators DocumentCollaborator[]
+  // Document Relations removed
 
   // Job Relations
   postedJobs      Job[]            @relation("PostedJobs")
@@ -110,13 +107,16 @@ model User {
   ducks Duck[]
 
   // Project Relations
-  projectProfile    ProjectProfile?
-  projectComments   ProjectComment[]
-  projectLikes      ProjectLike[]
+  projectProfile        ProjectProfile?
+  projectComments       ProjectComment[]
+  projectLikes          ProjectLike[]
   projectCollaborations ProjectCollaborator[]
 
   // Attendance Relations (only for STUDENT users)
-  attendanceRecords Attendance[]
+  attendanceRecords        Attendance[]
+  // Chat Relations
+  conversationParticipants ConversationParticipant[]
+  chatMessages             ChatMessage[]
 
   @@map("users")
 }
@@ -132,20 +132,20 @@ model UserImage {
 }
 
 model Cohort {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   name        String
   startDate   DateTime
   endDate     DateTime? // Course end date (optional for migration)
   description String?
   image       String?
   avatar      String? // Cohort avatar URL or base64 data
-  slug        String   @unique
+  slug        String    @unique
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Relations
-  students User[]
+  students          User[]
   attendanceRecords Attendance[]
 
   @@map("cohorts")
@@ -330,8 +330,7 @@ model Comment {
   postId String?
   post   CommunityPost? @relation(fields: [postId], references: [id], onDelete: Cascade)
 
-  documentId String?
-  document   Document? @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  // documentId and document relation removed
 
   parentId String?
   parent   Comment?  @relation("CommentThread", fields: [parentId], references: [id])
@@ -478,164 +477,74 @@ model PostTag {
   @@map("post_tags")
 }
 
-// Keep existing Document functionality for course content and community
-model Document {
-  id          String       @id @default(cuid())
-  title       String
-  content     Json
-  parentId    String?
-  isFolder    Boolean      @default(false)
-  isPublished Boolean      @default(false)
-  isArchived  Boolean      @default(false)
-  coverImage  String?
-  icon        String?
-  type        DocumentType @default(GENERAL)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  authorId      String
-  author        User                   @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  parent        Document?              @relation("DocumentHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
-  children      Document[]             @relation("DocumentHierarchy")
-  favorites     Favorite[]
-  comments      Comment[]
-  suggestions   Suggestion[]
-  collaborators DocumentCollaborator[]
-  versions      DocumentVersion[]
-
-  @@map("documents")
-}
-
-// Keep existing models with minimal changes
-model Favorite {
-  id String @id @default(cuid())
-
-  userId     String
-  documentId String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-
-  @@unique([userId, documentId])
-  @@map("favorites")
-}
-
-model Suggestion {
-  id          String           @id @default(cuid())
-  type        SuggestionType
-  content     Json
-  status      SuggestionStatus @default(PENDING)
-  description String?
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-
-  blockId String?
-  path    Json?
-
-  userId     String
-  documentId String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
-
-  @@map("suggestions")
-}
-
-model DocumentCollaborator {
-  id         String             @id @default(cuid())
-  permission DocumentPermission @default(READ)
-  createdAt  DateTime           @default(now())
-
-  userId     String
-  documentId String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, documentId])
-  @@map("document_collaborators")
-}
-
-model DocumentVersion {
-  id        String   @id @default(cuid())
-  content   Json
-  title     String
-  version   Int
-  createdAt DateTime @default(now())
-
-  documentId String
-  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
-
-  @@unique([documentId, version])
-  @@map("document_versions")
-}
+// Document functionality removed
 
 // Project Showcase Models
 model ProjectProfile {
-  id          String  @id @default(cuid())
-  bio         String?
-  headline    String? // Professional headline/tagline
-  location    String?
-  website     String?
-  resume      String? // URL to resume/CV
-  theme       String  @default("default") // Project profile theme/template
-  isPublic    Boolean @default(true)
-  isActive    Boolean @default(true)
-  viewCount   Int     @default(0)
+  id        String  @id @default(cuid())
+  bio       String?
+  headline  String? // Professional headline/tagline
+  location  String?
+  website   String?
+  resume    String? // URL to resume/CV
+  theme     String  @default("default") // Project profile theme/template
+  isPublic  Boolean @default(true)
+  isActive  Boolean @default(true)
+  viewCount Int     @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Relations
-  userId   String @unique
-  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  projects ProjectShowcase[]
-  skills   ProjectSkill[]
+  userId      String            @unique
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projects    ProjectShowcase[]
+  skills      ProjectSkill[]
   experiences Experience[]
 
   @@map("project_profiles")
 }
 
 model ProjectShowcase {
-  id            String   @id @default(cuid())
-  title         String
-  description   String
-  summary       Json? // Rich Plate.js content for detailed project summary
-  shortDesc     String? // Brief description for cards
-  images        Json? // Array of image URLs
-  demoUrl       String? // Live demo URL
-  githubUrl     String? // Repository URL
-  techStack     Json // Array of technologies used
-  features      Json? // Array of key features
-  challenges    String? // Challenges faced during development
-  solutions     String? // Solutions implemented
-  status        ProjectStatus @default(COMPLETED)
-  startDate     DateTime?
-  endDate       DateTime?
-  isFeatured    Boolean @default(false)
-  isPublic      Boolean @default(true)
-  likes         Int     @default(0)
-  views         Int     @default(0)
+  id          String        @id @default(cuid())
+  title       String
+  description String
+  summary     Json? // Rich Plate.js content for detailed project summary
+  shortDesc   String? // Brief description for cards
+  images      Json? // Array of image URLs
+  demoUrl     String? // Live demo URL
+  githubUrl   String? // Repository URL
+  techStack   Json // Array of technologies used
+  features    Json? // Array of key features
+  challenges  String? // Challenges faced during development
+  solutions   String? // Solutions implemented
+  status      ProjectStatus @default(COMPLETED)
+  startDate   DateTime?
+  endDate     DateTime?
+  isFeatured  Boolean       @default(false)
+  isPublic    Boolean       @default(true)
+  likes       Int           @default(0)
+  views       Int           @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Relations
   projectProfileId String
-  projectProfile   ProjectProfile @relation(fields: [projectProfileId], references: [id], onDelete: Cascade)
-  comments    ProjectComment[]
-  projectLikes ProjectLike[]
-  collaborators ProjectCollaborator[]
+  projectProfile   ProjectProfile        @relation(fields: [projectProfileId], references: [id], onDelete: Cascade)
+  comments         ProjectComment[]
+  projectLikes     ProjectLike[]
+  collaborators    ProjectCollaborator[]
 
   @@map("project_showcases")
 }
 
 model Skill {
-  id          String @id @default(cuid())
-  name        String @unique
-  category    String // e.g., "Frontend", "Backend", "Database", "DevOps"
-  icon        String? // Icon name or URL
-  color       String @default("#3B82F6") // Display color
+  id       String  @id @default(cuid())
+  name     String  @unique
+  category String // e.g., "Frontend", "Backend", "Database", "DevOps"
+  icon     String? // Icon name or URL
+  color    String  @default("#3B82F6") // Display color
 
   createdAt DateTime @default(now())
 
@@ -705,7 +614,7 @@ model ProjectLike {
 
   userId    String
   projectId String
-  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   project   ProjectShowcase @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
@@ -720,7 +629,7 @@ model ProjectCollaborator {
 
   userId    String
   projectId String
-  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   project   ProjectShowcase @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
@@ -817,37 +726,9 @@ enum ResourceType {
   LINK
   FILE
   VIDEO
-  DOCUMENT
 }
 
-enum DocumentType {
-  GENERAL
-  COURSE_MATERIAL
-  ASSIGNMENT
-  RESOURCE
-}
-
-// Existing enums
-enum SuggestionType {
-  INSERT
-  DELETE
-  REPLACE
-  BLOCK_INSERT
-  BLOCK_DELETE
-  BLOCK_REPLACE
-}
-
-enum SuggestionStatus {
-  PENDING
-  ACCEPTED
-  REJECTED
-}
-
-enum DocumentPermission {
-  READ
-  WRITE
-  ADMIN
-}
+// Document-related enums removed
 
 // Job Board Models
 model Job {
@@ -1017,4 +898,70 @@ enum AttendanceStatus {
   ABSENT_SICK
   ABSENT_EXCUSED
   ABSENT_UNEXCUSED
+}
+
+// Chat Models
+model Conversation {
+  id          String           @id @default(cuid())
+  type        ConversationType @default(DIRECT)
+  name        String? // For group chats
+  description String? // For group chats
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  // Relations
+  participants ConversationParticipant[]
+  messages     ChatMessage[]
+
+  @@map("conversations")
+}
+
+model ConversationParticipant {
+  id             String          @id @default(cuid())
+  conversationId String
+  userId         String
+  role           ParticipantRole @default(MEMBER)
+  joinedAt       DateTime        @default(now())
+  lastSeenAt     DateTime?
+
+  // Relations
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+  @@map("conversation_participants")
+}
+
+model ChatMessage {
+  id             String   @id @default(cuid())
+  content        String
+  conversationId String
+  userId         String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Legacy fields for backward compatibility (can be removed later)
+  roomName String?
+  userName String?
+
+  @@index([conversationId])
+  @@index([createdAt])
+  @@index([userId])
+  @@map("chat_messages")
+}
+
+enum ConversationType {
+  DIRECT // One-on-one chat
+  GROUP // Group chat
+  CHANNEL // Public channel (like general-chat)
+}
+
+enum ParticipantRole {
+  MEMBER
+  ADMIN
+  OWNER
 }

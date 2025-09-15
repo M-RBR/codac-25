@@ -1,9 +1,9 @@
 import fs from 'fs';
 import path from 'path';
-import { PrismaClient, UserRole, UserStatus, CourseCategory, LessonProgressStatus } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { logger } from '../../../lib/logger';
 import { encodeSeedImageToBase64 } from '../../../lib/imaging/encode-image-to-base64';
+import { CourseCategory, LessonProgressStatus, PrismaClient, UserRole, UserStatus } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -282,7 +282,7 @@ export async function seedBlackOwls() {
 
                 // Create lesson progress for each lesson based on overall progress
                 for (const lesson of course.lessons) {
-                    let lessonStatus: LessonProgressStatus = 'NOT_STARTED';
+                    let lessonStatus = 'NOT_STARTED';
 
                     // Determine lesson status based on course progress and lesson order
                     if (enrollment.progress >= 90) {
@@ -299,7 +299,7 @@ export async function seedBlackOwls() {
                         data: {
                             userId: student.id,
                             lessonId: lesson.id,
-                            status: lessonStatus,
+                            status: lessonStatus as LessonProgressStatus,
                             startedAt: lessonStatus !== 'NOT_STARTED' ? new Date(enrollment.enrolledAt) : null,
                             completedAt: lessonStatus === 'COMPLETED' ? new Date() : null,
                             timeSpent: lessonStatus === 'COMPLETED' ? lesson.duration || 30 : 0,

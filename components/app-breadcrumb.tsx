@@ -22,19 +22,22 @@ interface BreadcrumbConfig {
 const ROUTE_CONFIG: BreadcrumbConfig = {
     '/': { label: 'Dashboard', href: '/' },
     '/lms': { label: 'Learning Management', href: '/lms' },
-    '/learning': { label: 'Learning', href: '/learning' },
     '/community': { label: 'Community', href: '/community' },
+    '/community/cohorts': { label: 'Cohorts', href: '/community/cohorts' },
+    '/community/students': { label: 'Students', href: '/community/students' },
+    '/community/instructors': { label: 'Instructors', href: '/community/instructors' },
+    '/community/mentors': { label: 'Mentors', href: '/community/mentors' },
+    '/projects': { label: 'Projects', href: '/projects' },
     '/career': { label: 'Career Services', href: '/career' },
     '/career/jobs': { label: 'Job Board', href: '/career/jobs' },
     '/mentorship': { label: 'Mentorship', href: '/mentorship' },
-    '/docs': { label: 'Documentation', href: '/docs' },
     '/profile': { label: 'Profile', href: '/profile' },
     '/profile/settings': { label: 'Settings' },
 };
 
 export function AppBreadcrumb() {
     const pathname = usePathname();
-    
+
     // Don't show breadcrumb for home page
     if (pathname === '/') {
         return null;
@@ -83,8 +86,8 @@ export function AppBreadcrumb() {
                                     {item.label}
                                 </BreadcrumbPage>
                             ) : (
-                                <Link 
-                                    href={item.href || '#'} 
+                                <Link
+                                    href={item.href || '#'}
                                     className="flex items-center text-muted-foreground hover:text-foreground transition-colors"
                                 >
                                     {index === 0 && <Home className="h-4 w-4 mr-1" />}

@@ -40,12 +40,10 @@ export type UserProfile = Prisma.UserGetPayload<{
         };
         _count: {
             select: {
-                documents: true;
                 enrollments: true;
                 posts: true;
                 comments: true;
                 achievements: true;
-                favorites: true;
             };
         };
     };
@@ -96,12 +94,10 @@ export async function getUser(id: string): Promise<GetUserResult> {
                 },
                 _count: {
                     select: {
-                        documents: true,
                         enrollments: true,
                         posts: true,
                         comments: true,
                         achievements: true,
-                        favorites: true,
                     },
                 },
             },

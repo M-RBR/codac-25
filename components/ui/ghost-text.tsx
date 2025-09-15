@@ -1,20 +1,33 @@
 'use client';
 
+
 import { CopilotPlugin } from '@platejs/ai/react';
-import { usePluginOption } from 'platejs/react';
+import { useElement, usePluginOption } from 'platejs/react';
 import * as React from 'react';
 
 export function GhostText() {
-  const suggestionText = usePluginOption(CopilotPlugin, 'suggestionText');
+  const element = useElement();
 
-  if (!suggestionText) return null;
+  const isSuggested = usePluginOption(
+    CopilotPlugin,
+    'isSuggested',
+    element.id as string
+  );
+
+  if (!isSuggested) return null;
+
+  return <GhostTextContent />;
+}
+
+function GhostTextContent() {
+  const suggestionText = usePluginOption(CopilotPlugin, 'suggestionText');
 
   return (
     <span
       className="pointer-events-none text-muted-foreground/70 max-sm:hidden"
       contentEditable={false}
     >
-      {suggestionText}
+      {suggestionText && suggestionText}
     </span>
   );
 }

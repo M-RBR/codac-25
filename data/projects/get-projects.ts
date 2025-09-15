@@ -1,6 +1,5 @@
 'use server'
 
-
 import { prisma } from '@/lib/db'
 import { logger } from '@/lib/logger'
 import type { ProjectFilter, ProjectShowcaseWithStats } from '@/types/portfolio'
@@ -9,6 +8,9 @@ export async function getAllProjects(
   filter: ProjectFilter = {}
 ): Promise<ProjectShowcaseWithStats[]> {
   try {
+    // For public projects, we don't need authentication
+    const userId = null
+
     const { search, techStack, status, featured } = filter
 
     // Build where clause
@@ -56,6 +58,10 @@ export async function getAllProjects(
             }
           }
         },
+        projectLikes: {
+          where: userId ? { userId } : { id: 'never-matches' },
+          select: { id: true }
+        },
         _count: {
           select: {
             comments: true,
@@ -70,7 +76,15 @@ export async function getAllProjects(
       ]
     })
 
-    return projects as ProjectShowcaseWithStats[]
+    // Add isLiked property to each project
+    const projectsWithLikeStatus = projects.map(project => ({
+      ...project,
+      isLiked: userId ? project.projectLikes.length > 0 : false,
+      // Remove the projectLikes array from the response (we only needed it for the check)
+      projectLikes: undefined,
+    }))
+
+    return projectsWithLikeStatus as ProjectShowcaseWithStats[]
 
   } catch (error) {
     logger.error('Failed to get projects', error instanceof Error ? error : new Error(String(error)))
@@ -80,6 +94,9 @@ export async function getAllProjects(
 
 export async function getFeaturedProjects(limit = 6): Promise<ProjectShowcaseWithStats[]> {
   try {
+    // For public projects, we don't need authentication
+    const userId = null
+
     const projects = await prisma.projectShowcase.findMany({
       where: {
         isPublic: true,
@@ -101,6 +118,10 @@ export async function getFeaturedProjects(limit = 6): Promise<ProjectShowcaseWit
             }
           }
         },
+        projectLikes: {
+          where: userId ? { userId } : { id: 'never-matches' },
+          select: { id: true }
+        },
         _count: {
           select: {
             comments: true,
@@ -117,7 +138,15 @@ export async function getFeaturedProjects(limit = 6): Promise<ProjectShowcaseWit
       take: limit
     })
 
-    return projects as ProjectShowcaseWithStats[]
+    // Add isLiked property to each project
+    const projectsWithLikeStatus = projects.map(project => ({
+      ...project,
+      isLiked: userId ? project.projectLikes.length > 0 : false,
+      // Remove the projectLikes array from the response (we only needed it for the check)
+      projectLikes: undefined,
+    }))
+
+    return projectsWithLikeStatus as ProjectShowcaseWithStats[]
 
   } catch (error) {
     logger.error('Failed to get featured projects', error instanceof Error ? error : new Error(String(error)))

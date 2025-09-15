@@ -1,7 +1,5 @@
 'use client';
 
-
-
 import { isOrderedList } from '@platejs/list';
 import {
   useTodoListElement,
@@ -34,9 +32,10 @@ const config: Record<
 export const BlockList: RenderNodeWrapper = (props) => {
   if (!props.element.listStyleType) return;
 
-  const BlockListWrapper = (props: PlateElementProps) => <List {...props} />;
-  BlockListWrapper.displayName = 'BlockListWrapper';
-  return BlockListWrapper;
+  const ListComponent = (props: PlateElementProps) => <List {...props} />;
+  ListComponent.displayName = 'ListComponent';
+
+  return ListComponent;
 };
 
 function List(props: PlateElementProps) {

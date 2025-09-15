@@ -11,7 +11,6 @@ export interface UserStats {
     averageProgress: number;
     studyStreak: number;
     monthlyStudyTime: number;
-    documentsCount: number;
     achievementsCount: number;
 }
 
@@ -19,7 +18,6 @@ export interface LearningProgressItem {
     id: string;
     name: string;
     progress: number;
-    track: string;
     courseId: string;
     category: string;
 }
@@ -47,7 +45,6 @@ export async function getUserStats(): Promise<UserStats> {
                 averageProgress: 0,
                 studyStreak: 0,
                 monthlyStudyTime: 0,
-                documentsCount: 0,
                 achievementsCount: 0,
             };
         }
@@ -94,9 +91,6 @@ export async function getUserStats(): Promise<UserStats> {
         }, 0) / 60; // Convert minutes to hours
 
         // Get documents count
-        const documentsCount = await prisma.document.count({
-            where: { authorId: user.id },
-        });
 
         // Get achievements count (if they exist)
         const achievementsCount = await prisma.userAchievement.count({
@@ -113,7 +107,6 @@ export async function getUserStats(): Promise<UserStats> {
             averageProgress,
             studyStreak,
             monthlyStudyTime: Math.round(monthlyStudyTime),
-            documentsCount,
             achievementsCount,
         };
     } catch (error) {
@@ -125,7 +118,6 @@ export async function getUserStats(): Promise<UserStats> {
             averageProgress: 0,
             studyStreak: 0,
             monthlyStudyTime: 0,
-            documentsCount: 0,
             achievementsCount: 0,
         };
     }
@@ -152,7 +144,6 @@ export async function getLearningProgress(): Promise<LearningProgressItem[]> {
             id: enrollment.id,
             name: enrollment.course.title,
             progress: enrollment.progress,
-            track: getTrackSlug(enrollment.course.category),
             courseId: enrollment.course.id,
             category: enrollment.course.category,
         }));
@@ -237,18 +228,7 @@ export async function getRecentActivity(): Promise<RecentActivityItem[]> {
     }
 }
 
-function getTrackSlug(category: string): string {
-    switch (category) {
-        case 'WEB_DEVELOPMENT':
-            return 'web';
-        case 'DATA_SCIENCE':
-            return 'data';
-        case 'CAREER_DEVELOPMENT':
-            return 'career';
-        default:
-            return 'general';
-    }
-}
+// Track functionality removed
 
 async function calculateStudyStreak(userId: string): Promise<number> {
     try {

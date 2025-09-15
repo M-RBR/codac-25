@@ -30,6 +30,7 @@ export type ProjectShowcaseWithStats = ProjectShowcase & {
   projectProfile: ProjectProfile & {
     user: Pick<User, 'id' | 'name' | 'avatar'>
   }
+  isLiked?: boolean
   _count: {
     comments: number
     projectLikes: number
@@ -41,6 +42,7 @@ export type ProjectShowcaseWithDetails = ProjectShowcase & {
   projectProfile: ProjectProfile & {
     user: Pick<User, 'id' | 'name' | 'avatar' | 'githubUrl' | 'linkedinUrl'>
   }
+  isLiked?: boolean
   comments: (ProjectComment & {
     author: Pick<User, 'id' | 'name' | 'avatar'>
     replies?: (ProjectComment & {
@@ -100,6 +102,16 @@ export type CreateProjectData = {
   startDate?: Date
   endDate?: Date
   isPublic?: boolean
+  // GitHub import metadata (optional)
+  githubImportData?: {
+    importedAt: Date
+    stars: number
+    forks: number
+    size: number
+    language?: string
+    topics?: string[]
+    lastUpdated: Date
+  }
 }
 
 export type AddSkillData = {
@@ -356,3 +368,35 @@ export const PROJECT_SUMMARY_TEMPLATES = [
 ] as const
 
 export type ProjectSummaryTemplate = (typeof PROJECT_SUMMARY_TEMPLATES)[number]
+
+// GitHub import types
+export type ProjectCreationMode = 'manual' | 'github-import'
+
+export type GitHubImportPreview = {
+  title: string
+  description: string
+  shortDesc?: string
+  githubUrl: string
+  demoUrl?: string
+  techStack: string[]
+  features?: string[]
+  stars: number
+  forks: number
+  size: number
+  language?: string
+  topics?: string[]
+  lastUpdated: Date
+  isPrivate: boolean
+  isArchived: boolean
+  hasReadme: boolean
+  readmeSummary?: any // Plate.js format
+}
+
+export type GitHubImportOptions = {
+  importTitle: boolean
+  importDescription: boolean
+  importTechStack: boolean
+  importFeatures: boolean
+  importDemoUrl: boolean
+  importReadmeSummary: boolean
+}

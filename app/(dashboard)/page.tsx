@@ -25,7 +25,8 @@ export default async function DashboardPage() {
   const result = await getUser(session.user.id);
 
   if (!result.success || !result.data) {
-    redirect('/auth/signin');
+    // User has valid session but no database record - redirect to signout to clear session
+    redirect('/auth/signout?callbackUrl=/auth/signin');
   }
 
   const user = result.data;
@@ -187,7 +188,7 @@ export default async function DashboardPage() {
         )}
 
         {/* Quick Actions */}
-        <Section>
+        <Section bottomSpacing="none">
           <SectionErrorBoundary sectionName="quick actions">
             <Card>
               <CardHeader>

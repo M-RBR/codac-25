@@ -27,7 +27,6 @@ export type CohortWithStudents = Prisma.CohortGetPayload<{
                 createdAt: true;
                 _count: {
                     select: {
-                        documents: true;
                         enrollments: true;
                         posts: true;
                         comments: true;
@@ -58,6 +57,8 @@ export async function getCohorts(): Promise<GetCohortsResult> {
             resource: 'cohorts',
         });
 
+
+
         // Get all cohorts with their students
         const cohorts = await prisma.cohort.findMany({
             include: {
@@ -80,7 +81,6 @@ export async function getCohorts(): Promise<GetCohortsResult> {
                         createdAt: true,
                         _count: {
                             select: {
-                                documents: true,
                                 enrollments: true,
                                 posts: true,
                                 comments: true,

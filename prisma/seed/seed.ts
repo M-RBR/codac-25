@@ -1,15 +1,18 @@
 #!/usr/bin/env tsx
 
-import { PrismaClient } from '@prisma/client';
 import * as readline from 'readline';
+
+import { PrismaClient } from '@prisma/client';
+
 import { logger } from '../../lib/logger';
 
 // Import all seeder modules
 import { seedAttackOnTitan, cleanAttackOnTitan } from './seeders/attack-on-titan';
-import { seedLMSContent, cleanLMSContent } from './seeders/lms-content';
-import { seedQuizzes, seedQuizzesIncremental, cleanQuizzes } from './seeders/quizzes';
+import { seedChatConversations, cleanChatConversations } from './seeders/chat';
 import { seedJobs, cleanJobs } from './seeders/jobs';
+import { seedLMSContent, cleanLMSContent } from './seeders/lms-content';
 import { seedProjects, cleanProjects } from './seeders/projects';
+import { seedQuizzes, seedQuizzesIncremental, cleanQuizzes } from './seeders/quizzes';
 
 const prisma = new PrismaClient();
 
@@ -64,6 +67,13 @@ const seedOptions: SeedOption[] = [
         action: seedProjects,
         cleanAction: cleanProjects,
     },
+    {
+        id: 'chat-conversations',
+        name: 'Chat Conversations',
+        description: 'Create group conversations for each cohort with sample messages',
+        action: seedChatConversations,
+        cleanAction: cleanChatConversations,
+    },
 ];
 
 function displayMenu() {
@@ -87,9 +97,10 @@ async function seedAll() {
     logger.info('🌱 Starting complete database seeding...');
 
     try {
-        // Seed in order: courses -> users -> content -> quizzes -> jobs -> projects
+        // Seed in order: courses -> users -> content -> chats -> quizzes -> jobs -> projects
         await seedLMSContent();
         await seedAttackOnTitan();
+        await seedChatConversations();
         await seedQuizzes();
         await seedJobs();
         await seedProjects();
@@ -102,6 +113,7 @@ async function seedAll() {
         console.log('  • Attack on Titan themed users and cohorts');
         console.log('  • Black Owls cohort with progress tracking');
         console.log('  • LMS content from markdown files');
+        console.log('  • Group chat conversations per cohort');
         console.log('  • Quiz questions and answers');
         console.log('  • Job postings');
         console.log('  • Demo project showcases');
@@ -125,6 +137,7 @@ async function cleanAll() {
         await cleanProjects();
         await cleanJobs();
         await cleanQuizzes();
+        await cleanChatConversations();
         await cleanLMSContent();
         await cleanAttackOnTitan();
 

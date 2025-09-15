@@ -58,3 +58,7 @@ node_modules/
 /playwright/.cache/
 
 **/*.icloud
+/playwright-report/
+
+# temp
+/temp/

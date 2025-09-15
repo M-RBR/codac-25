@@ -1,16 +1,17 @@
 "use client";
 
 import {
-  FolderOpen,
   Users,
   Briefcase,
-  FileText,
-  Pyramid,
-  UserCheck,
   Code2,
-  Trophy,
+  LayoutDashboard,
+  GraduationCap,
+  HandHeart,
+  MessageCircle,
+  User2,
   BookOpen,
   ClipboardCheck,
+  Lock,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -28,100 +29,146 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 
-import { NavTop } from "./nav-top";
+import { NavSecondary } from "./nav-secondary";
+import { NavTop, NavigationGroup } from "./nav-top";
 import { NavUser } from "./nav-user";
 
-const buildNavigationData = (role?: string) => {
+const buildNavigationData = (role?: string): NavigationGroup[] => {
+  // Build mentorship items based on role
   const mentorshipItems = [];
-
   if (role === "MENTOR" || role === "ADMIN") {
-    // Mentors and admins see sessions management
     mentorshipItems.push({
       title: "My Sessions",
       url: "/mentorship/sessions",
-      icon: UserCheck,
     });
   } else {
-    // Students see find mentors and their sessions
     mentorshipItems.push(
       {
         title: "Find Mentors",
         url: "/mentorship/find",
-        icon: UserCheck,
       },
       {
         title: "My Sessions",
         url: "/mentorship/my-mentors",
-        icon: UserCheck,
       }
     );
   }
 
-  // Build secondary navigation items
-  const navSecondaryItems = [
+  // Build career items based on role
+  const careerItems = [
+    {
+      title: "Jobs",
+      url: "/career/jobs",
+    },
+    {
+      title: "Upload Duck",
+      url: "/career/ducks/upload",
+    },
+  ];
+
+  // Add career admin items for authorized roles
+  if (role === "ADMIN" || role === "MENTOR") {
+    careerItems.push({
+      title: "Post Job",
+      url: "/career/jobs/post",
+    });
+  }
+
+  // Build learning items based on role
+  const learningItems = [
     {
       title: "Learning",
       url: "/lms",
       icon: BookOpen,
     },
-    {
-      title: "Documents",
-      url: "/docs",
-      icon: FileText,
-    },
-    {
-      title: "Quizzes",
-      url: "/learning/quiz",
-      icon: Pyramid,
-    },
   ];
 
-  // Add Attendance menu item for MENTOR and ADMIN users only (after Quizzes)
-  if (role === "MENTOR" || role === "ADMIN") {
-    navSecondaryItems.push({
-      title: "Attendance",
-      url: "/attendance",
-      icon: ClipboardCheck,
+  if (role === "ADMIN") {
+    learningItems.push({
+      title: "LMS Admin",
+      url: "/lms/admin",
+      icon: Lock
     });
   }
 
-  return {
-    navTop: [
-      {
-        title: "My Projects",
-        url: "/projects/my",
-        icon: FolderOpen,
-      },
-      {
-        title: "Projects",
-        url: "/projects",
-        icon: Code2,
-      },
-      {
-        title: "Showcase",
-        url: "/showcase",
-        icon: Trophy,
-      },
-      {
-        title: "Community",
-        url: "/community",
-        icon: Users,
-      },
-      {
-        title: "Career",
-        url: "/career/jobs",
-        icon: Briefcase,
-      },
-      ...mentorshipItems,
-    ],
-    navSecondary: navSecondaryItems,
-    footer: [],
-  };
+  return [
+    {
+      title: "Overview",
+      icon: LayoutDashboard,
+      items: [
+        {
+          title: "Dashboard",
+          url: "/",
+        },
+      ],
+    },
+    {
+      title: "Projects",
+      icon: Code2,
+      items: [
+        {
+          title: "My Projects",
+          url: "/projects/my",
+        },
+        {
+          title: "Browse Projects",
+          url: "/projects",
+        },
+        {
+          title: "Showcase",
+          url: "/showcase",
+        },
+      ],
+    },
+    {
+      title: "Community",
+      icon: Users,
+      items: [
+        {
+          title: "Community",
+          url: "/community",
+        },
+        {
+          title: "Cohorts",
+          url: "/community/cohorts",
+        },
+      ],
+    },
+    {
+      title: "Career",
+      icon: Briefcase,
+      items: careerItems,
+    },
+    {
+      title: "Mentorship",
+      icon: HandHeart,
+      items: mentorshipItems,
+    },
+    {
+      title: "Learning",
+      icon: GraduationCap,
+      items: learningItems,
+    },
+
+  ];
 };
+
+const navSecondaryItems = [
+  {
+    title: "Chat",
+    url: "/chat",
+    icon: MessageCircle,
+  },
+  {
+    title: "Profile",
+    url: "/profile",
+    icon: User2,
+  },
+];
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { data: session } = useSession();
-  const [navData, setNavData] = React.useState(() =>
+  const [navGroups, setNavGroups] = React.useState(() =>
     buildNavigationData(undefined)
   );
 
@@ -129,12 +176,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   React.useEffect(() => {
     if (session?.user) {
       const userData = session.user as User;
-      setNavData(buildNavigationData(userData.role));
+      setNavGroups(buildNavigationData(userData.role));
     }
   }, [session]);
 
   return (
-    <Sidebar collapsible="icon" {...props}>
+    <Sidebar variant="sidebar" collapsible="icon" {...props}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
@@ -160,8 +207,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
-      <SidebarContent className="px-0">
-        <NavTop items={[...navData.navTop, ...navData.navSecondary]} />
+      <SidebarContent className="px-0 flex flex-col">
+        <div className="flex-1">
+          <NavTop groups={navGroups} />
+        </div>
+        <div className="mt-auto">
+          <NavSecondary items={navSecondaryItems} />
+        </div>
       </SidebarContent>
       <SidebarFooter>
         <NavUser />

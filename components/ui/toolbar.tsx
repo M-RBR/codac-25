@@ -4,7 +4,7 @@
 import * as ToolbarPrimitive from '@radix-ui/react-toolbar';
 import * as TooltipPrimitive from '@radix-ui/react-tooltip';
 import { type VariantProps, cva } from 'class-variance-authority';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDownIcon } from 'lucide-react';
 import * as React from 'react';
 
 import {
@@ -150,7 +150,7 @@ export const ToolbarButton = withTooltip(function ToolbarButton({
               {children}
             </div>
             <div>
-              <ChevronDown
+              <ChevronDownIcon
                 className="size-3.5 text-muted-foreground"
                 data-icon
               />
@@ -242,7 +242,7 @@ export function ToolbarSplitButtonSecondary({
       role="button"
       {...props}
     >
-      <ChevronDown className="size-3.5 text-muted-foreground" data-icon />
+      <ChevronDownIcon className="size-3.5 text-muted-foreground" data-icon />
     </span>
   );
 }
@@ -270,11 +270,11 @@ export function ToolbarGroup({
     <div
       className={cn(
         'group/toolbar-group',
-        'relative hidden has-[button]:flex items-center',
+        'relative hidden has-[button]:flex',
         className
       )}
     >
-      <div className="flex items-center flex-shrink-0">{children}</div>
+      <div className="flex items-center">{children}</div>
 
       <div className="mx-1.5 py-0.5 group-last/toolbar-group:hidden!">
         <Separator orientation="vertical" />
@@ -304,9 +304,15 @@ function withTooltip<T extends React.ElementType>(Component: T) {
     tooltipTriggerProps,
     ...props
   }: TooltipProps<T>) {
+    const [mounted, setMounted] = React.useState(false);
+
+    React.useEffect(() => {
+      setMounted(true);
+    }, []);
+
     const component = <Component {...(props as React.ComponentProps<T>)} />;
 
-    if (tooltip) {
+    if (tooltip && mounted) {
       return (
         <Tooltip {...tooltipProps}>
           <TooltipTrigger asChild {...tooltipTriggerProps}>

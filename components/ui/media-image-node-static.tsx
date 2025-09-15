@@ -8,10 +8,7 @@ import type {
 import { NodeApi, SlateElement } from 'platejs';
 import * as React from 'react';
 
-
-
 import { cn } from '@/lib/utils';
-
 
 export function ImageElementStatic(
   props: SlateElementProps<TImageElement & TCaptionProps & TResizableProps>
@@ -30,8 +27,10 @@ export function ImageElementStatic(
               'w-full max-w-full cursor-default object-cover px-0',
               'rounded-sm'
             )}
-            alt={props.element.alt as string}
+            alt={(props.attributes as any).alt}
             src={url}
+            width={width || 300}
+            height={200}
           />
           {caption && (
             <figcaption className="mx-auto mt-2 h-[24px] max-w-full">
