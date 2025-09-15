@@ -11,6 +11,7 @@ import {
     handlePrismaError
 } from '@/lib/server-action-utils';
 
+
 // Define return type with Prisma's generated types
 type AttendanceWithRelations = Prisma.AttendanceGetPayload<{
     include: {
@@ -121,7 +122,7 @@ export async function createAttendance(data: {
             };
         }
 
-        console.log("date", date);
+
         // Create attendance record
         const attendance = await prisma.attendance.create({
             data: {
